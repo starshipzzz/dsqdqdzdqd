@@ -6,10 +6,10 @@ from telegram.ext import ContextTypes, ConversationHandler
 CHOOSING = "CHOOSING"
 
 class UIHandler:
-    def __init__(self, config, save_active_users):
+    def __init__(self, config, save_active_users, catalog):  # Ajout de catalog
         self.CONFIG = config
         self.save_active_users = save_active_users
-
+        self.CATALOG = catalog  # Ajout de cette ligne
 
     async def show_products(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Affiche les produits d'une catégorie"""
@@ -126,29 +126,3 @@ class UIHandler:
 
         return CHOOSING
 
-class UIHandler:
-    def __init__(self, config, save_active_users):
-        self.CONFIG = config
-        self.save_active_users = save_active_users
-
-    async def show_products(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Affiche les produits d'une catégorie"""
-        query = update.callback_query
-        category = query.data.replace("category_", "")
-        
-        if category in self.CATALOG:
-            products = self.CATALOG[category]
-            keyboard = []
-            for product in products:
-                keyboard.append([InlineKeyboardButton(
-                    product['name'], 
-                    callback_data=f"product_{category}_{product['name']}"
-                )])
-            keyboard.append([InlineKeyboardButton("🔙 Retour", callback_data="show_categories")])
-            
-            await query.edit_message_text(
-                f"*{category}*\n\nChoisissez un produit :",
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='Markdown'
-            )
-        return CHOOSING

@@ -87,7 +87,7 @@ STATS_CACHE = None
 LAST_CACHE_UPDATE = None
 
 access_control = AccessControl(CONFIG, save_config, ADMIN_IDS)
-ui_handler = UIHandler(CONFIG, save_active_users)
+ui_handler = UIHandler(CONFIG, save_active_users, CATALOG)
 
 # Fonctions de gestion du catalogue
 def load_catalog():
