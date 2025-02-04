@@ -1742,122 +1742,122 @@ def main():
         application = Application.builder().token(TOKEN).build()
 
         # Gestionnaire de conversation principal
-conv_handler = ConversationHandler(
-    entry_points=[CommandHandler('start', start)],
-    states={
-        CHOOSING: [
-            CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
-            CallbackQueryHandler(admin, pattern='^admin$'),
-            CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$')
-        ],
+        conv_handler = ConversationHandler(
+            entry_points=[CommandHandler('start', start)],
+            states={
+                CHOOSING: [
+                    CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
+                    CallbackQueryHandler(admin, pattern='^admin$'),
+                    CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$')
+                ],
         
-        CHOOSE_CATEGORY: [
-            CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
-            CallbackQueryHandler(admin, pattern='^admin$'),
-            CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$')
-        ],
+                CHOOSE_CATEGORY: [
+                    CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
+                    CallbackQueryHandler(admin, pattern='^admin$'),
+                    CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$')
+                ],
         
-        CHOOSING_PRODUCT: [
-            CallbackQueryHandler(handle_normal_buttons, pattern='^product_'),  # Modifié ici
-            CallbackQueryHandler(handle_normal_buttons, pattern='^back_to_categories$')  # Modifié ici
-        ],
+                CHOOSING_PRODUCT: [
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^product_'),  # Modifié ici
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^back_to_categories$')  # Modifié ici
+                ],
 
-        WAITING_PRODUCT_NAME: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_name)
-        ],
+                WAITING_PRODUCT_NAME: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_name)
+                ],
 
-        WAITING_PRODUCT_DESCRIPTION: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_description)
-        ],
+                WAITING_PRODUCT_DESCRIPTION: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_description)
+                ],
 
-        WAITING_PRODUCT_PRICE: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_price)
-        ],
+                WAITING_PRODUCT_PRICE: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_price)
+                ],
 
-        WAITING_PRODUCT_MEDIA: [
-            MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
-            CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),  # Modifié ici
-            CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')  # Modifié ici
-        ],
+                WAITING_PRODUCT_MEDIA: [
+                    MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
+                    CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),  # Modifié ici
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')  # Modifié ici
+                ],
 
-        WAITING_PRODUCT_CATEGORY: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_category),
-            CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_')  # Modifié ici
-        ],
+                WAITING_PRODUCT_CATEGORY: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_category),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_')  # Modifié ici
+                ],
 
-        CONFIRM_ADD_PRODUCT: [
-            CallbackQueryHandler(handle_normal_buttons, pattern='^confirm_add_product$'),  # Modifié ici
-            CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')  # Modifié ici
-        ],
+                CONFIRM_ADD_PRODUCT: [
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^confirm_add_product$'),  # Modifié ici
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')  # Modifié ici
+                ],
 
-        CHOOSING_PRODUCT_TO_REMOVE: [
-            CallbackQueryHandler(handle_normal_buttons, pattern='^remove_product_'),  # Modifié ici
-            CallbackQueryHandler(admin, pattern='^back_to_admin$')
-        ],
+                CHOOSING_PRODUCT_TO_REMOVE: [
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^remove_product_'),  # Modifié ici
+                    CallbackQueryHandler(admin, pattern='^back_to_admin$')
+                ],
 
-        CHOOSING_PRODUCT_TO_EDIT: [
-            CallbackQueryHandler(handle_normal_buttons, pattern='^edit_product_'),  # Modifié ici
-            CallbackQueryHandler(admin, pattern='^back_to_admin$')
-        ],
+                CHOOSING_PRODUCT_TO_EDIT: [
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_product_'),  # Modifié ici
+                    CallbackQueryHandler(admin, pattern='^back_to_admin$')
+                ],
 
-        EDITING_PRODUCT: [
-            CallbackQueryHandler(handle_normal_buttons, pattern='^edit_name$'),  # Modifié ici
-            CallbackQueryHandler(handle_normal_buttons, pattern='^edit_description$'),  # Modifié ici
-            CallbackQueryHandler(handle_normal_buttons, pattern='^edit_price$'),  # Modifié ici
-            CallbackQueryHandler(handle_normal_buttons, pattern='^edit_media$'),  # Modifié ici
-            CallbackQueryHandler(handle_normal_buttons, pattern='^edit_category$'),  # Modifié ici
-            CallbackQueryHandler(admin, pattern='^back_to_admin$')
-        ],
+                EDITING_PRODUCT: [
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_name$'),  # Modifié ici
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_description$'),  # Modifié ici
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_price$'),  # Modifié ici
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_media$'),  # Modifié ici
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_category$'),  # Modifié ici
+                    CallbackQueryHandler(admin, pattern='^back_to_admin$')
+                ],
 
-        WAITING_NEW_NAME: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
-        ],
+                WAITING_NEW_NAME: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
+                ],
 
-        WAITING_NEW_DESCRIPTION: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
-        ],
+                WAITING_NEW_DESCRIPTION: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
+                ],
 
-        WAITING_NEW_PRICE: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
-        ],
+                WAITING_NEW_PRICE: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
+                ],
 
-        WAITING_NEW_MEDIA: [
-            MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
-            CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),  # Modifié ici
-            CallbackQueryHandler(handle_normal_buttons, pattern='^back_to_edit$')  # Modifié ici
-        ],
+                WAITING_NEW_MEDIA: [
+                    MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
+                    CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),  # Modifié ici
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^back_to_edit$')  # Modifié ici
+                ],
 
-        WAITING_NEW_CATEGORY: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
-            CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_')  # Modifié ici
-        ],
+                WAITING_NEW_CATEGORY: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_')  # Modifié ici
+                ],
 
-        WAITING_ACCESS_CODE: [
-            MessageHandler(
-                filters.TEXT & ~filters.COMMAND, 
-                lambda update, context: access_control.verify_code(update, context, ui_handler.show_home)
-            )
-        ],
+                WAITING_ACCESS_CODE: [
+                    MessageHandler(
+                        filters.TEXT & ~filters.COMMAND, 
+                        lambda update, context: access_control.verify_code(update, context, ui_handler.show_home)
+                    )
+                ],
 
-        WAITING_BROADCAST_MESSAGE: [
-            MessageHandler(
-                (filters.TEXT | filters.PHOTO | filters.VIDEO) & ~filters.COMMAND,
-                handle_broadcast_message
-            ),
-            CallbackQueryHandler(
-                lambda u, c: show_admin_menu(u, c),
-                pattern="^cancel_broadcast$"
-            )
-        ]
-    },
-    fallbacks=[
-        CommandHandler('start', start),
-        CommandHandler('admin', admin),
-        CommandHandler('cancel', cancel)
-    ],
-    name="main_conversation",
-    persistent=False
-)
+                WAITING_BROADCAST_MESSAGE: [
+                    MessageHandler(
+                        (filters.TEXT | filters.PHOTO | filters.VIDEO) & ~filters.COMMAND,
+                        handle_broadcast_message
+                    ),
+                    CallbackQueryHandler(
+                        lambda u, c: show_admin_menu(u, c),
+                        pattern="^cancel_broadcast$"
+                    )
+                ]
+            },
+            fallbacks=[
+                CommandHandler('start', start),
+                CommandHandler('admin', admin),
+                CommandHandler('cancel', cancel)
+            ],
+            name="main_conversation",
+            persistent=False
+        )
     
         application.add_handler(conv_handler)
         application.job_queue.run_daily(daily_maintenance, time=time(hour=0, minute=0))
