@@ -231,23 +231,25 @@ def print_catalog_debug():
 CHOOSING = "CHOOSING"
 CHOOSE_CATEGORY = "CHOOSE_CATEGORY"
 CHOOSING_PRODUCT = "CHOOSING_PRODUCT"
+CHOOSING_PRODUCT_TO_REMOVE = "CHOOSING_PRODUCT_TO_REMOVE"
+CHOOSING_PRODUCT_TO_EDIT = "CHOOSING_PRODUCT_TO_EDIT"  # Ajout de cette constante manquante
 WAITING_CATEGORY_NAME = "WAITING_CATEGORY_NAME"
 WAITING_PRODUCT_NAME = "WAITING_PRODUCT_NAME"
 WAITING_PRODUCT_PRICE = "WAITING_PRODUCT_PRICE"
 WAITING_PRODUCT_DESCRIPTION = "WAITING_PRODUCT_DESCRIPTION"
 WAITING_PRODUCT_MEDIA = "WAITING_PRODUCT_MEDIA"
-WAITING_PRODUCT_CATEGORY = "WAITING_PRODUCT_CATEGORY"  # Ajout de cette constante manquante
+WAITING_PRODUCT_CATEGORY = "WAITING_PRODUCT_CATEGORY"
 SELECTING_CATEGORY = "SELECTING_CATEGORY"
 SELECTING_CATEGORY_TO_DELETE = "SELECTING_CATEGORY_TO_DELETE"
 SELECTING_PRODUCT_TO_DELETE = "SELECTING_PRODUCT_TO_DELETE"
-WAITING_CONTACT_USERNAME = "WAITING_CONTACT_USERNAME"
 SELECTING_PRODUCT_TO_EDIT = "SELECTING_PRODUCT_TO_EDIT"
+WAITING_CONTACT_USERNAME = "WAITING_CONTACT_USERNAME"
 EDITING_PRODUCT_FIELD = "EDITING_PRODUCT_FIELD"
 WAITING_NEW_VALUE = "WAITING_NEW_VALUE"
 WAITING_BROADCAST_MESSAGE = "WAITING_BROADCAST_MESSAGE"
 CONFIRM_ADD_PRODUCT = "CONFIRM_ADD_PRODUCT"
 WAITING_ACCESS_CODE = "WAITING_ACCESS_CODE"
-WAITING_NEW_NAME = "WAITING_NEW_NAME"  # Ajout des constantes pour l'édition
+WAITING_NEW_NAME = "WAITING_NEW_NAME"
 WAITING_NEW_DESCRIPTION = "WAITING_NEW_DESCRIPTION"
 WAITING_NEW_PRICE = "WAITING_NEW_PRICE"
 WAITING_NEW_MEDIA = "WAITING_NEW_MEDIA"
@@ -425,6 +427,208 @@ async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return CHOOSING
 
+async def handle_product_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gère la sélection de catégorie pour un produit"""
+    category_name = update.message.text
+    if category_name in CATALOG:
+        context.user_data['temp_product_category'] = category_name
+        await update.message.reply_text(
+            "📝 Veuillez entrer le nom du produit:",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("🔙 Annuler", callback_data="cancel_add_product")
+            ]])
+        )
+        return WAITING_PRODUCT_NAME
+    else:
+        await update.message.reply_text(
+            "❌ Cette catégorie n'existe pas. Veuillez choisir une catégorie valide ou annuler."
+        )
+        return WAITING_PRODUCT_CATEGORY
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Annule et termine la conversation."""
+    await update.message.reply_text(
+        "Opération annulée. Tapez /start pour recommencer."
+    )
+    return ConversationHandler.END
+
+async def finish_adding_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Termine l'ajout de médias et sauvegarde le produit"""
+    query = update.callback_query
+    await query.answer()
+    
+    category = context.user_data.get('temp_product_category')
+    if not category:
+        await query.message.edit_text("Une erreur est survenue. Veuillez recommencer.")
+        return await show_admin_menu(update, context)
+    
+    if 'temp_product_media' not in context.user_data:
+        context.user_data['temp_product_media'] = []
+    
+    new_product = {
+        'name': context.user_data.get('temp_product_name'),
+        'price': context.user_data.get('temp_product_price'),
+        'description': context.user_data.get('temp_product_description'),
+        'media': context.user_data.get('temp_product_media')
+    }
+    
+    if category not in CATALOG:
+        CATALOG[category] = []
+    
+    CATALOG[category].append(new_product)
+    save_catalog(CATALOG)
+    
+    await query.message.edit_text(
+        "✅ Produit ajouté avec succès !",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("🔙 Retour au menu", callback_data="admin")
+        ]])
+    )
+    
+    context.user_data.clear()
+    return CHOOSING
+
+async def cancel_add_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Annule l'ajout d'un produit"""
+    query = update.callback_query
+    await query.answer()
+    context.user_data.clear()
+    return await show_admin_menu(update, context)
+
+async def show_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Affiche les détails d'un produit"""
+    query = update.callback_query
+    await query.answer()
+    
+    try:
+        _, category, product_name = query.data.split("_", 2)
+        product = next((p for p in CATALOG[category] if p['name'] == product_name), None)
+        
+        if product:
+            text = f"📱 *{product['name']}*\n\n"
+            text += f"💰 *Prix:* {product['price']}\n\n"
+            text += f"📝 *Description:*\n{product['description']}"
+            
+            keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data=f"view_{category}")]]
+            
+            await query.edit_message_text(
+                text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+    except Exception as e:
+        print(f"Erreur dans show_product: {e}")
+        await query.edit_message_text(
+            "❌ Une erreur est survenue.",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("🔙 Retour", callback_data="show_categories")
+            ]])
+        )
+    return CHOOSING
+
+async def handle_product_category_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gère la sélection de catégorie via bouton"""
+    query = update.callback_query
+    await query.answer()
+    
+    category = query.data.replace("select_category_", "")
+    context.user_data['temp_product_category'] = category
+    
+    await query.message.edit_text(
+        "📝 Veuillez entrer le nom du nouveau produit:",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("🔙 Annuler", callback_data="cancel_add_product")
+        ]])
+    )
+    return WAITING_PRODUCT_NAME
+
+async def confirm_add_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Confirme l'ajout d'un produit"""
+    query = update.callback_query
+    await query.answer()
+    
+    category = context.user_data.get('temp_product_category')
+    if not category:
+        return await show_admin_menu(update, context)
+
+    new_product = {
+        'name': context.user_data.get('temp_product_name'),
+        'price': context.user_data.get('temp_product_price'),
+        'description': context.user_data.get('temp_product_description'),
+        'media': context.user_data.get('temp_product_media', [])
+    }
+
+    if category not in CATALOG:
+        CATALOG[category] = []
+    CATALOG[category].append(new_product)
+    save_catalog(CATALOG)
+    
+    await query.message.edit_text(
+        "✅ Produit ajouté avec succès !",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("🔙 Retour au menu", callback_data="admin")
+        ]])
+    )
+    
+    context.user_data.clear()
+    return CHOOSING
+
+async def confirm_remove_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Confirme la suppression d'un produit"""
+    query = update.callback_query
+    await query.answer()
+    
+    try:
+        _, category, product_name = query.data.replace("remove_product_", "").split("_", 2)
+        
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ Oui, supprimer", 
+                    callback_data=f"really_remove_product_{category}_{product_name}"),
+                InlineKeyboardButton("❌ Non, annuler", 
+                    callback_data="cancel_remove_product")
+            ]
+        ]
+        
+        await query.message.edit_text(
+            f"⚠️ Êtes-vous sûr de vouloir supprimer *{product_name}* ?\n\n"
+            "Cette action est irréversible !",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+        return SELECTING_PRODUCT_TO_DELETE
+        
+    except Exception as e:
+        print(f"Erreur dans confirm_remove_product: {e}")
+        return await show_admin_menu(update, context)
+
+async def edit_product_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Affiche le menu d'édition d'un produit"""
+    query = update.callback_query
+    await query.answer()
+    
+    try:
+        _, product_id = query.data.split("_", 1)
+        context.user_data['editing_product_id'] = product_id
+        
+        keyboard = [
+            [InlineKeyboardButton("📝 Nom", callback_data="edit_name")],
+            [InlineKeyboardButton("💰 Prix", callback_data="edit_price")],
+            [InlineKeyboardButton("📝 Description", callback_data="edit_description")],
+            [InlineKeyboardButton("🖼️ Photo/Vidéo", callback_data="edit_media")],
+            [InlineKeyboardButton("🔙 Annuler", callback_data="cancel_edit")]
+        ]
+        
+        await query.message.edit_text(
+            "✏️ Que souhaitez-vous modifier ?\n"
+            "Sélectionnez un champ à modifier:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return EDITING_PRODUCT
+        
+    except Exception as e:
+        print(f"Erreur dans edit_product_menu: {e}")
+        return await show_admin_menu(update, context)
 
 async def daily_maintenance(context: ContextTypes.DEFAULT_TYPE):
     """Tâches de maintenance quotidiennes"""
