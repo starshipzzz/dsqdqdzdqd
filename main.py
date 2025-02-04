@@ -3,11 +3,8 @@ import logging
 import asyncio
 import shutil
 import os
-from modules.ui_handlers import UIHandler, CHOOSING
-from modules.access_control import AccessControl, WAITING_ACCESS_CODE
-from datetime import datetime, time
-from __main__ import show_home
 import pytz
+from datetime import datetime, time
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, 
@@ -19,10 +16,6 @@ from telegram.ext import (
     ConversationHandler
 )
 
-STATS_CACHE = None
-LAST_CACHE_UPDATE = None
-
-
 # Configuration du logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -33,8 +26,6 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
-access_control = AccessControl(CONFIG, save_config, ADMIN_IDS)
-ui_handler = UIHandler(CONFIG, save_active_users)
 
 # Charger la configuration
 try:
@@ -48,6 +39,55 @@ except FileNotFoundError:
 except KeyError as e:
     print(f"Erreur: La clé {e} est manquante dans le fichier config.json!")
     exit(1)
+
+def save_config():
+    """Sauvegarde la configuration dans le fichier config.json"""
+    try:
+        with open('config/config.json', 'w', encoding='utf-8') as f:
+            json.dump(CONFIG, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde de la configuration : {e}")
+
+def save_active_users(users_data):
+    """Sauvegarde les données des utilisateurs actifs dans un fichier"""
+    try:
+        with open('data/active_users.json', 'w', encoding='utf-8') as f:
+            # Convertir les IDs en strings pour le JSON
+            data = {str(user_id): info for user_id, info in users_data.items()}
+            json.dump(data, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde des utilisateurs actifs: {e}")
+
+def load_active_users():
+    """Charge les données des utilisateurs actifs depuis le fichier"""
+    try:
+        with open('data/active_users.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            if isinstance(data, list):  # Ancien format (liste d'IDs)
+                # Convertir en nouveau format
+                return {int(user_id): {
+                    'username': None,
+                    'first_name': None,
+                    'last_name': None,
+                    'last_seen': datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                } for user_id in data}
+            else:  # Nouveau format (dictionnaire)
+                return {int(k): v for k, v in data.items()}
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        print(f"Erreur lors du chargement des utilisateurs actifs: {e}")
+        return {}
+
+# Initialiser les modules après avoir chargé CONFIG et défini les fonctions nécessaires
+from modules.ui_handlers import UIHandler
+from modules.access_control import AccessControl, WAITING_ACCESS_CODE
+
+STATS_CACHE = None
+LAST_CACHE_UPDATE = None
+
+access_control = AccessControl(CONFIG, save_config, ADMIN_IDS)
+ui_handler = UIHandler(CONFIG, save_active_users)
 
 # Fonctions de gestion du catalogue
 def load_catalog():
