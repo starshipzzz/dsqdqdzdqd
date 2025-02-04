@@ -471,7 +471,8 @@ async def handle_product_description(update: Update, context: ContextTypes.DEFAU
         message_id=update.message.message_id - 1
     )
     
-    await update.message.reply_text(
+    # Envoyer et sauvegarder l'ID du message d'invitation
+    invitation_message = await update.message.reply_text(
         "📸 Envoyez les photos ou vidéos du produit (plusieurs possibles)\n"
         "Une fois terminé, cliquez sur Terminé :",
         reply_markup=InlineKeyboardMarkup([
@@ -480,6 +481,7 @@ async def handle_product_description(update: Update, context: ContextTypes.DEFAU
             [InlineKeyboardButton("🔙 Annuler", callback_data="cancel_add_product")]
         ])
     )
+    context.user_data['media_invitation_message_id'] = invitation_message.message_id
     
     # Supprimer le message de l'utilisateur
     await update.message.delete()
@@ -512,6 +514,16 @@ async def handle_product_media(update: Update, context: ContextTypes.DEFAULT_TYP
         except Exception as e:
             print(f"Erreur lors de la suppression du message d'invitation: {e}")
 
+    # Supprimer le message de confirmation précédent s'il existe
+    if context.user_data.get('last_confirmation_message_id'):
+        try:
+            await context.bot.delete_message(
+                chat_id=update.effective_chat.id,
+                message_id=context.user_data['last_confirmation_message_id']
+            )
+        except Exception as e:
+            print(f"Erreur lors de la suppression du message de confirmation: {e}")
+
     # Incrémenter le compteur
     context.user_data['media_count'] += 1
 
@@ -536,7 +548,7 @@ async def handle_product_media(update: Update, context: ContextTypes.DEFAULT_TYP
     # Supprimer le message de l'utilisateur
     await update.message.delete()
 
-    # Envoyer le message de confirmation
+    # Envoyer le message de confirmation et sauvegarder son ID
     message = await update.message.reply_text(
         f"Photo/Vidéo {context.user_data['media_count']} ajoutée ! Cliquez sur Terminé pour valider :",
         reply_markup=InlineKeyboardMarkup([
@@ -544,7 +556,8 @@ async def handle_product_media(update: Update, context: ContextTypes.DEFAULT_TYP
             [InlineKeyboardButton("🔙 Annuler", callback_data="cancel_add_product")]
         ])
     )
-    context.user_data['last_message_id'] = message.message_id
+    # Sauvegarder l'ID du nouveau message de confirmation
+    context.user_data['last_confirmation_message_id'] = message.message_id
 
     return WAITING_PRODUCT_MEDIA
 
