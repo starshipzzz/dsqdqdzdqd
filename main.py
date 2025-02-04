@@ -1748,18 +1748,18 @@ def main():
         CHOOSING: [
             CallbackQueryHandler(ui_handler.ui_handler.show_products, pattern='^category_'),
             CallbackQueryHandler(admin, pattern='^admin$'),
-            CallbackQueryHandler(show_home, pattern='^back_to_home$')
+            CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$')
         ],
         
         CHOOSE_CATEGORY: [
             CallbackQueryHandler(ui_handler.ui_handler.show_products, pattern='^category_'),
             CallbackQueryHandler(admin, pattern='^admin$'),
-            CallbackQueryHandler(show_home, pattern='^back_to_home$')
+            CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$')
         ],
         
         CHOOSING_PRODUCT: [
             CallbackQueryHandler(ui_handler.show_products, pattern='^product_'),
-            CallbackQueryHandler(show_home, pattern='^back_to_categories$')
+            CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_categories$')
         ],
 
         WAITING_PRODUCT_NAME: [
