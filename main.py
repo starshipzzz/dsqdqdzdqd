@@ -357,9 +357,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Menu administrateur"""
+    # Vérifier si l'utilisateur est administrateur
     if str(update.effective_user.id) not in ADMIN_IDS:
-        await update.message.reply_text("Vous n'êtes pas administrateur.")
-        return
+        # Si c'est un callback_query
+        if update.callback_query:
+            await update.callback_query.answer("Vous n'êtes pas administrateur.")
+            return CHOOSING
+        # Si c'est un message
+        else:
+            await update.message.reply_text("Vous n'êtes pas administrateur.")
+            return CHOOSING
 
     keyboard = [
         [InlineKeyboardButton("➕ Ajouter un produit", callback_data="add_product")],
@@ -374,13 +381,28 @@ async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Ajouter le bouton retour
     keyboard.append([InlineKeyboardButton("🔙 Retour à l'accueil", callback_data="back_to_home")])
 
-    await update.message.reply_text(
+    text = (
         "🔧 *Menu Administrateur*\n\n"
         f"Contrôle d'accès: {'✅ Activé' if CONFIG['access_control']['enabled'] else '❌ Désactivé'}\n"
-        f"Codes actifs: {access_control.get_active_codes_count()}",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
+        f"Codes actifs: {access_control.get_active_codes_count()}"
     )
+
+    # Si c'est un callback_query
+    if update.callback_query:
+        await update.callback_query.edit_message_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+    # Si c'est un message
+    else:
+        await update.message.reply_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+
+    return CHOOSING
 
 async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Affiche le menu d'administration"""
