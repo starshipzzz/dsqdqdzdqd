@@ -1,8 +1,9 @@
-import json
+﻿import json
 import logging
 import asyncio
 import shutil
 import os
+from modules.ui_handlers import UIHandler, CHOOSING
 from modules.access_control import AccessControl, WAITING_ACCESS_CODE
 from datetime import datetime, time
 from __main__ import show_home
@@ -33,6 +34,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 access_control = AccessControl(CONFIG, save_config, ADMIN_IDS)
+ui_handler = UIHandler(CONFIG, save_active_users)
 
 # Charger la configuration
 try:
@@ -204,7 +206,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Point d'entrée du bot"""
     has_access = await access_control.check_access(update, context)
     if has_access:
-        return await show_home(update, context)
+        return await ui_handler.show_home(update, context)
     return WAITING_ACCESS_CODE
     
     # Sauvegarder les informations de l'utilisateur
@@ -1698,6 +1700,12 @@ def main():
         conv_handler = ConversationHandler(
     entry_points=[CommandHandler('start', start)],
     states={
+        CHOOSING: [
+            CallbackQueryHandler(show_products, pattern='^category_'),
+            CallbackQueryHandler(admin, pattern='^admin$'),
+            CallbackQueryHandler(show_home, pattern='^back_to_home$')
+        ],
+        
         CHOOSE_CATEGORY: [
             CallbackQueryHandler(show_products, pattern='^category_'),
             CallbackQueryHandler(admin, pattern='^admin$'),
@@ -1779,33 +1787,32 @@ def main():
             CallbackQueryHandler(handle_new_category_button, pattern='^select_category_')
         ],
 
-        # Nouvel état pour le contrôle d'accès
         WAITING_ACCESS_CODE: [
             MessageHandler(
                 filters.TEXT & ~filters.COMMAND, 
-                lambda update, context: access_control.verify_code(update, context, show_home)
+                lambda update, context: access_control.verify_code(update, context, ui_handler.show_home)
             )
         ],
+
+        WAITING_BROADCAST_MESSAGE: [
+            MessageHandler(
+                (filters.TEXT | filters.PHOTO | filters.VIDEO) & ~filters.COMMAND,
+                handle_broadcast_message
+            ),
+            CallbackQueryHandler(
+                lambda u, c: show_admin_menu(u, c),
+                pattern="^cancel_broadcast$"
+            )
+        ]
+    },
+    fallbacks=[
+        CommandHandler('start', start),
+        CommandHandler('admin', admin),
+        CommandHandler('cancel', cancel)
+    ],
+    name="main_conversation",
+    persistent=False
 )
-            WAITING_BROADCAST_MESSAGE: [
-    MessageHandler(
-        (filters.TEXT | filters.PHOTO | filters.VIDEO) & ~filters.COMMAND,  # Parenthèses corrigées
-        handle_broadcast_message
-    ),
-    CallbackQueryHandler(
-        lambda u, c: show_admin_menu(u, c),
-        pattern="cancel_broadcast"
-    ),
-],
-         
-        },
-        fallbacks=[
-            CommandHandler('start', start),
-            CommandHandler('admin', admin),
-        ],
-        name="main_conversation",
-        persistent=False,
-    )
     
         application.add_handler(conv_handler)
         application.job_queue.run_daily(daily_maintenance, time=time(hour=0, minute=0))
