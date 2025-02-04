@@ -1741,13 +1741,13 @@ def main():
     entry_points=[CommandHandler('start', start)],
     states={
         CHOOSING: [
-            CallbackQueryHandler(show_products, pattern='^category_'),
+            CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
             CallbackQueryHandler(admin, pattern='^admin$'),
             CallbackQueryHandler(show_home, pattern='^back_to_home$')
         ],
         
         CHOOSE_CATEGORY: [
-            CallbackQueryHandler(show_products, pattern='^category_'),
+            CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
             CallbackQueryHandler(admin, pattern='^admin$'),
             CallbackQueryHandler(show_home, pattern='^back_to_home$')
         ],
