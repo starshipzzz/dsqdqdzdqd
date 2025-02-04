@@ -1,4 +1,4 @@
-﻿import json
+import json
 import logging
 import asyncio
 import shutil
@@ -1300,14 +1300,23 @@ async def handle_normal_buttons(update: Update, context: ContextTypes.DEFAULT_TY
         )
 
     elif query.data == "back_to_home":
+        # Créer le keyboard de base
         keyboard = [
-            [InlineKeyboardButton("📋 MENU", callback_data="show_categories")],
+            [InlineKeyboardButton("📋 MENU", callback_data="show_categories")]
+        ]
+    
+
+        if str(update.effective_user.id) in ADMIN_IDS:
+            keyboard.append([InlineKeyboardButton("🔧 Menu Admin", callback_data="admin")])
+    
+
+        keyboard.extend([
             [
                 InlineKeyboardButton("📞 Contact telegram", url=f"https://t.me/{CONFIG['contact_username']}"),
                 InlineKeyboardButton("📝 Canal telegram", url="https://t.me/+LT2G6gMsMjY3MWFk"),
             ],
             [InlineKeyboardButton("🥔 Canal potato", url="https://doudlj.org/joinchat/5ZEmn25bOsTR7f-aYdvC0Q")]
-        ]
+        ])
         
         welcome_text = (
             "🌿 *Bienvenue sur le bot test de DDLAD* 🌿\n\n"
