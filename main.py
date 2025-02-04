@@ -501,15 +501,16 @@ async def handle_product_media(update: Update, context: ContextTypes.DEFAULT_TYP
     if 'media_count' not in context.user_data:
         context.user_data['media_count'] = 0
 
-    # Supprimer le message précédent d'instruction s'il existe
-    if context.user_data.get('last_message_id'):
+    # Supprimer le message d'invitation précédent s'il existe
+    if context.user_data.get('media_invitation_message_id'):
         try:
             await context.bot.delete_message(
                 chat_id=update.effective_chat.id,
-                message_id=context.user_data['last_message_id']
+                message_id=context.user_data['media_invitation_message_id']
             )
+            del context.user_data['media_invitation_message_id']
         except Exception as e:
-            print(f"Erreur lors de la suppression du message: {e}")
+            print(f"Erreur lors de la suppression du message d'invitation: {e}")
 
     # Incrémenter le compteur
     context.user_data['media_count'] += 1
