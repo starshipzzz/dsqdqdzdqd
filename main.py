@@ -99,7 +99,9 @@ LAST_CACHE_UPDATE = None
 
 # Initialiser les handlers avec toutes les dépendances nécessaires
 access_control = AccessControl(CONFIG, save_config, ADMIN_IDS)
+access_control.set_default_callback(ui_handler.show_home)
 ui_handler = UIHandler(CONFIG, save_active_users, CATALOG)
+
 
 
 def save_catalog(catalog):
@@ -2072,7 +2074,7 @@ def main():
                 WAITING_ACCESS_CODE: [
                     MessageHandler(
                         filters.TEXT & ~filters.COMMAND, 
-                        lambda update, context: access_control.verify_code(update, context, ui_handler.show_home)
+                        access_control.verify_code
                     )
                 ],
 

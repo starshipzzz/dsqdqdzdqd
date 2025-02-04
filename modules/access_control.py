@@ -1,4 +1,5 @@
-﻿import random
+﻿# modules/access_control.py
+import random
 import string
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -49,6 +50,10 @@ class AccessControl:
         self.CONFIG['access_control']['valid_codes'][code]['used'] = True
         self.save_config()
         return True
+
+    def set_default_callback(self, callback):
+        """Définit le callback par défaut à utiliser après la vérification du code"""
+        self.default_callback = callback
 
     def clean_old_codes(self):
         """Nettoie les codes plus vieux que 24h"""
@@ -137,16 +142,30 @@ class AccessControl:
         )
         return False
 
-    async def verify_code(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def verify_code(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback):
         """Vérifie le code d'accès entré par l'utilisateur"""
-        code = update.message.text.strip().upper()
+        code = update.message.text
+    
+        if not self.config['access_control']['enabled']:
+            return await callback(update, context)
+    
+        if code in self.config['access_control']['valid_codes']:
+            # Ajouter l'utilisateur à la liste des utilisateurs autorisés
+            if 'authorized_users' not in self.config['access_control']:
+                self.config['access_control']['authorized_users'] = []
         
-        if self.validate_code(code):
-            context.user_data['access_granted'] = True
-            return True
+            user_id = str(update.effective_user.id)
+            if user_id not in self.config['access_control']['authorized_users']:
+                self.config['access_control']['authorized_users'].append(user_id)
+                self.save_config()
+        
+            # Supprimer le message contenant le code
+            await update.message.delete()
+        
+            # Appeler le callback (généralement show_home)
+            return await callback(update, context)
         else:
             await update.message.reply_text(
-                "❌ Code invalide ou déjà utilisé.\n"
-                "Veuillez réessayer ou contacter un administrateur."
+                "❌ Code incorrect. Veuillez réessayer ou contacter un administrateur."
             )
-            return False
+            return WAITING_ACCESS_CODE
