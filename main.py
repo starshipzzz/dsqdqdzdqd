@@ -79,16 +79,6 @@ def load_active_users():
         print(f"Erreur lors du chargement des utilisateurs actifs: {e}")
         return {}
 
-# Initialiser les modules après avoir chargé CONFIG et défini les fonctions nécessaires
-from modules.ui_handlers import UIHandler
-from modules.access_control import AccessControl, WAITING_ACCESS_CODE
-
-STATS_CACHE = None
-LAST_CACHE_UPDATE = None
-
-access_control = AccessControl(CONFIG, save_config, ADMIN_IDS)
-ui_handler = UIHandler(CONFIG, save_active_users, CATALOG)
-
 # Fonctions de gestion du catalogue
 def load_catalog():
     try:
@@ -96,6 +86,21 @@ def load_catalog():
             return json.load(f)
     except FileNotFoundError:
         return {}
+
+# Charger le catalogue avant d'initialiser ui_handler
+CATALOG = load_catalog()
+
+# Initialiser les modules après avoir chargé CONFIG et CATALOG
+from modules.ui_handlers import UIHandler
+from modules.access_control import AccessControl, WAITING_ACCESS_CODE
+
+STATS_CACHE = None
+LAST_CACHE_UPDATE = None
+
+# Initialiser les handlers avec toutes les dépendances nécessaires
+access_control = AccessControl(CONFIG, save_config, ADMIN_IDS)
+ui_handler = UIHandler(CONFIG, save_active_users, CATALOG)
+
 
 def save_catalog(catalog):
     with open(CONFIG['catalog_file'], 'w', encoding='utf-8') as f:
@@ -1741,19 +1746,19 @@ def main():
     entry_points=[CommandHandler('start', start)],
     states={
         CHOOSING: [
-            CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
+            CallbackQueryHandler(ui_handler.ui_handler.show_products, pattern='^category_'),
             CallbackQueryHandler(admin, pattern='^admin$'),
             CallbackQueryHandler(show_home, pattern='^back_to_home$')
         ],
         
         CHOOSE_CATEGORY: [
-            CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
+            CallbackQueryHandler(ui_handler.ui_handler.show_products, pattern='^category_'),
             CallbackQueryHandler(admin, pattern='^admin$'),
             CallbackQueryHandler(show_home, pattern='^back_to_home$')
         ],
         
         CHOOSING_PRODUCT: [
-            CallbackQueryHandler(show_product, pattern='^product_'),
+            CallbackQueryHandler(ui_handler.show_products, pattern='^product_'),
             CallbackQueryHandler(show_home, pattern='^back_to_categories$')
         ],
 
