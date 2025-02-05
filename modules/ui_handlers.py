@@ -1,6 +1,7 @@
 ﻿from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
+from telegram import InputMediaPhoto
 
 # États de conversation (à importer depuis un fichier central de constantes plus tard si tu veux)
 CHOOSING = "CHOOSING"
@@ -34,95 +35,46 @@ class UIHandler:
         return CHOOSING
 
     async def show_home(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Affiche le menu d'accueil"""
-        chat_id = update.effective_chat.id
-        user = update.effective_user
-
-        # Sauvegarder les informations de l'utilisateur
-        if 'active_users' not in context.bot_data:
-            context.bot_data['active_users'] = {}
-        
-        context.bot_data['active_users'][user.id] = {
-            'username': user.username,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'last_seen': datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        self.save_active_users(context.bot_data['active_users'])
-
-        # Créer le keyboard de base
+        """Affiche le menu principal avec la bannière"""
+        # Créer le clavier
         keyboard = [
-            [InlineKeyboardButton("📋 MENU", callback_data="show_categories")]
+            [InlineKeyboardButton("🛍 Catalogue", callback_data="show_categories")],
+            [InlineKeyboardButton("ℹ️ À propos", callback_data="about")],
+            [InlineKeyboardButton("📞 Contact", callback_data="contact")]
         ]
+    
+        # Ajouter le bouton admin si l'utilisateur est admin
+        if str(update.effective_user.id) in self.admin_ids:
+            keyboard.append([InlineKeyboardButton("🔧 Admin", callback_data="admin")])
 
-        # Ajouter le bouton admin si l'utilisateur est administrateur
-        if str(update.effective_user.id) in self.CONFIG['admin_ids']:
-            keyboard.append([InlineKeyboardButton("🔧 Menu Admin", callback_data="admin")])
-
-        # Ajouter les boutons de contact et canaux
-        keyboard.extend([
-            [
-                InlineKeyboardButton("📞 Contact telegram", url=f"https://t.me/{self.CONFIG['contact_username']}"),
-                InlineKeyboardButton("📝 Canal telegram", url="https://t.me/+LT2G6gMsMjY3MWFk"),
-            ],
-            [InlineKeyboardButton("🥔 Canal potato", url="https://doudlj.org/joinchat/5ZEmn25bOsTR7f-aYdvC0Q")]
-        ])
-
-        welcome_text = (
-            "🌿 *Bienvenue sur le bot test de DDLAD* 🌿\n\n"
-            "Ceci n'est pas le produit final.\n"
-            "Ce bot est juste un bot test, pour tester mes conneries dessus.\n\n"
-            "📋 Cliquez sur MENU pour voir les catégories"
+        # Message avec mention de la bannière
+        message_text = (
+            "🎮 *Bienvenue sur le Bot*\n\n"
+            "Choisissez une option ci-dessous :"
         )
 
-        try:
-            # Vérifier si une image banner est configurée
-            if self.CONFIG.get('banner_image'):
-                # Si un ancien message banner existe, le supprimer
-                if 'banner_message_id' in context.user_data:
-                    try:
-                        await context.bot.delete_message(
-                            chat_id=chat_id,
-                            message_id=context.user_data['banner_message_id']
-                        )
-                    except:
-                        pass
-                
-                # Envoyer la nouvelle image banner
-                banner_message = await context.bot.send_photo(
-                    chat_id=chat_id,
-                    photo=self.CONFIG['banner_image']
+        # Si c'est un callback_query (retour au menu)
+        if update.callback_query:
+            # Modifier le message existant avec la nouvelle photo et le nouveau texte
+            with open('assets/banner.jpg', 'rb') as photo:
+                await update.callback_query.message.edit_media(
+                    media=InputMediaPhoto(
+                        media=photo,
+                        caption=message_text,
+                        parse_mode='Markdown'
+                    ),
+                    reply_markup=InlineKeyboardMarkup(keyboard)
                 )
-                context.user_data['banner_message_id'] = banner_message.message_id
-
-            # Si c'est un callback_query, éditer le message
-            if update.callback_query:
-                await update.callback_query.edit_message_text(
-                    text=welcome_text,
+            await update.callback_query.answer()
+        # Si c'est un nouveau message (commande /start)
+        else:
+            # Envoyer un nouveau message avec la photo
+            with open('assets/banner.jpg', 'rb') as photo:
+                await update.message.reply_photo(
+                    photo=photo,
+                    caption=message_text,
                     reply_markup=InlineKeyboardMarkup(keyboard),
                     parse_mode='Markdown'
                 )
-            else:
-                # Sinon, envoyer un nouveau message
-                menu_message = await context.bot.send_message(
-                    chat_id=chat_id,
-                    text=welcome_text,
-                    reply_markup=InlineKeyboardMarkup(keyboard),
-                    parse_mode='Markdown'
-                )
-                context.user_data['menu_message_id'] = menu_message.message_id
-
-        except Exception as e:
-            print(f"Erreur lors de l'affichage du menu d'accueil: {e}")
-            # En cas d'erreur, envoyer au moins le menu basique
-            if not update.callback_query:
-                menu_message = await context.bot.send_message(
-                    chat_id=chat_id,
-                    text=welcome_text,
-                    reply_markup=InlineKeyboardMarkup(keyboard),
-                    parse_mode='Markdown'
-                )
-                context.user_data['menu_message_id'] = menu_message.message_id
 
         return CHOOSING
-

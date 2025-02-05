@@ -16,6 +16,9 @@ from telegram.ext import (
     ConversationHandler
 )
 
+os.makedirs('data', exist_ok=True)
+os.makedirs('config', exist_ok=True)
+
 # Configuration du logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -58,6 +61,14 @@ EDITING_PRODUCT = "EDITING_PRODUCT"
 
 
 # 4. Définition des fonctions utilitaires
+def save_catalog():
+    """Sauvegarde le catalogue dans le fichier"""
+    try:
+        with open(CONFIG['catalog_file'], 'w', encoding='utf-8') as f:
+            json.dump(CATALOG, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde du catalogue : {e}")
+
 def load_catalog():
     """Charge le catalogue depuis le fichier"""
     try:
@@ -74,6 +85,22 @@ def save_config():
     except Exception as e:
         print(f"Erreur lors de la sauvegarde de la configuration : {e}")
 
+def save_active_users(active_users):
+    """Sauvegarde la liste des utilisateurs actifs"""
+    try:
+        with open('data/active_users.json', 'w', encoding='utf-8') as f:
+            json.dump(active_users, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde des utilisateurs actifs : {e}")
+
+def load_active_users():
+    """Charge la liste des utilisateurs actifs"""
+    try:
+        with open('data/active_users.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
 # Charger la configuration
 try:
     with open('config/config.json', 'r', encoding='utf-8') as f:
@@ -89,8 +116,8 @@ except KeyError as e:
 
 # Charger le catalogue avant d'initialiser ui_handler
 CATALOG = load_catalog()
+ACTIVE_USERS = load_active_users()
 
-# Importer les modules personnalisés après les imports standard
 from modules.ui_handlers import UIHandler
 from modules.access_control import AccessControl
 
