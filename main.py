@@ -434,28 +434,33 @@ async def contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Gère l'accès au menu administrateur"""
     user_id = str(update.effective_user.id)
+    keyboard = []
+    message_text = ""  # Initialisation de message_text
     
+    # Vérifie si l'utilisateur a déjà un accès administrateur
     if user_id not in ADMIN_IDS and not access_control.has_access(user_id):
         keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]]
         message_text = "⛔️ Accès refusé. Veuillez entrer le code d'accès :"
-        
-        if update.callback_query:
-            await update.callback_query.answer()
-            await update.callback_query.message.delete()
-            await update.callback_query.message.reply_text(
-                text=message_text,
-                reply_markup=InlineKeyboardMarkup(keyboard)
-            )
-        else:
-            await update.message.reply_text(
-                text=message_text,
-                reply_markup=InlineKeyboardMarkup(keyboard)
-            )
-        return WAITING_ACCESS_CODE
+    else:
+        # Menu admin pour les utilisateurs autorisés
+        keyboard = [
+            [InlineKeyboardButton("➕ Ajouter un produit", callback_data="add_product")],
+            [InlineKeyboardButton("✏️ Modifier un produit", callback_data="edit_product")],
+            [InlineKeyboardButton("❌ Supprimer un produit", callback_data="remove_product")],
+            [InlineKeyboardButton("📁 Ajouter une catégorie", callback_data="add_category")],
+            [InlineKeyboardButton("🗑 Supprimer une catégorie", callback_data="remove_category")],
+            [InlineKeyboardButton("🔐 Gérer les accès", callback_data="manage_access")],
+            [InlineKeyboardButton("📢 Message général", callback_data="broadcast")],
+            [InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]
+        ]
+        message_text = "🔧 *Menu Administrateur*\n\nQue souhaitez-vous faire ?"
 
     if update.callback_query:
         await update.callback_query.answer()
-        await update.callback_query.message.delete()
+        try:
+            await update.callback_query.message.delete()
+        except:
+            pass
         await update.callback_query.message.reply_text(
             text=message_text,
             reply_markup=InlineKeyboardMarkup(keyboard),
@@ -468,7 +473,7 @@ async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='Markdown'
         )
 
-    return CHOOSING
+    return WAITING_ACCESS_CODE if user_id not in ADMIN_IDS and not access_control.has_access(user_id) else CHOOSING
 
 async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Affiche le menu d'administration"""
