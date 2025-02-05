@@ -438,53 +438,66 @@ async def contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return CHOOSING
 
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Menu administrateur"""
-    # Vérifier si l'utilisateur est administrateur
-    if str(update.effective_user.id) not in ADMIN_IDS:
-        # Si c'est un callback_query
+    """Affiche le menu admin"""
+    try:
+        user_id = str(update.effective_user.id)
+        
+        if user_id not in ADMIN_IDS:
+            message_text = "⛔️ Accès refusé. Veuillez entrer le code d'accès :"
+            keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]]
+            
+            if update.callback_query:
+                await update.callback_query.answer()
+                await update.callback_query.message.edit_text(
+                    text=message_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+            else:
+                await update.message.reply_text(
+                    text=message_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+            return WAITING_ACCESS_CODE
+
+        # Menu admin pour les utilisateurs autorisés
+        keyboard = [
+            [InlineKeyboardButton("➕ Ajouter un produit", callback_data="add_product")],
+            [InlineKeyboardButton("✏️ Modifier un produit", callback_data="edit_product")],
+            [InlineKeyboardButton("❌ Supprimer un produit", callback_data="remove_product")],
+            [InlineKeyboardButton("📢 Message général", callback_data="broadcast")],
+            [InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]
+        ]
+
+        message_text = "🔧 *Menu Administrateur*\n\nQue souhaitez-vous faire ?"
+
         if update.callback_query:
-            await update.callback_query.answer("Vous n'êtes pas administrateur.")
-            return CHOOSING
-        # Si c'est un message
+            await update.callback_query.answer()
+            await update.callback_query.message.edit_text(
+                text=message_text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
         else:
-            await update.message.reply_text("Vous n'êtes pas administrateur.")
-            return CHOOSING
+            await update.message.reply_text(
+                text=message_text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
 
-    keyboard = [
-        [InlineKeyboardButton("➕ Ajouter un produit", callback_data="add_product")],
-        [InlineKeyboardButton("🗑 Supprimer un produit", callback_data="remove_product")],
-        [InlineKeyboardButton("📝 Modifier un produit", callback_data="edit_product")],
-    ]
-    
-    # Ajouter les boutons de contrôle d'accès
-    access_buttons = await access_control.handle_admin_menu(update, context)
-    keyboard.extend(access_buttons)
-    
-    # Ajouter le bouton retour
-    keyboard.append([InlineKeyboardButton("🔙 Retour à l'accueil", callback_data="back_to_home")])
+        return CHOOSING
 
-    text = (
-        "🔧 *Menu Administrateur*\n\n"
-        f"Contrôle d'accès: {'✅ Activé' if CONFIG['access_control']['enabled'] else '❌ Désactivé'}\n"
-        f"Codes actifs: {access_control.get_active_codes_count()}"
-    )
-
-    # Si c'est un callback_query
-    if update.callback_query:
-        await update.callback_query.edit_message_text(
-            text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='Markdown'
-        )
-    # Si c'est un message
-    else:
-        await update.message.reply_text(
-            text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='Markdown'
-        )
-
-    return CHOOSING
+    except Exception as e:
+        logging.error(f"Erreur dans la fonction admin: {str(e)}")
+        # Gérer l'erreur de manière appropriée
+        if update.callback_query:
+            await update.callback_query.answer("Une erreur s'est produite.")
+            message_text = "🔧 *Menu Administrateur*\n\nQue souhaitez-vous faire ?"
+            keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]]
+            await update.callback_query.message.edit_text(
+                text=message_text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
 
 async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Affiche le menu d'administration"""

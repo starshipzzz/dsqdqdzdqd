@@ -68,46 +68,33 @@ class UIHandler:
         return CHOOSING
 
     async def show_home(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Affiche le menu principal avec la bannière"""
-        # Créer le clavier
+        """Affiche le menu principal"""
         keyboard = [
             [InlineKeyboardButton("🛍 Catalogue", callback_data="show_categories")],
             [InlineKeyboardButton("ℹ️ À propos", callback_data="about")],
             [InlineKeyboardButton("📞 Contact", callback_data="contact")]
         ]
     
-        # Ajouter le bouton admin si l'utilisateur est admin
         if str(update.effective_user.id) in self.admin_ids:
             keyboard.append([InlineKeyboardButton("🔧 Admin", callback_data="admin")])
 
-        # Message avec mention de la bannière
         message_text = (
             "🎮 *Bienvenue sur le Bot*\n\n"
             "Choisissez une option ci-dessous :"
         )
 
-        # Si c'est un callback_query (retour au menu)
         if update.callback_query:
-            # Modifier le message existant avec la nouvelle photo et le nouveau texte
-            with open('assets/banner.jpg', 'rb') as photo:
-                await update.callback_query.message.edit_media(
-                    media=InputMediaPhoto(
-                        media=photo,
-                        caption=message_text,
-                        parse_mode='Markdown'
-                    ),
-                    reply_markup=InlineKeyboardMarkup(keyboard)
-                )
             await update.callback_query.answer()
-        # Si c'est un nouveau message (commande /start)
+            await update.callback_query.message.edit_text(
+                text=message_text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
         else:
-            # Envoyer un nouveau message avec la photo
-            with open('assets/banner.jpg', 'rb') as photo:
-                await update.message.reply_photo(
-                    photo=photo,
-                    caption=message_text,
-                    reply_markup=InlineKeyboardMarkup(keyboard),
-                    parse_mode='Markdown'
-                )
+            await update.message.reply_text(
+                text=message_text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
 
         return CHOOSING
