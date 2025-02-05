@@ -475,51 +475,6 @@ async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return WAITING_ACCESS_CODE if user_id not in ADMIN_IDS and not access_control.has_access(user_id) else CHOOSING
 
-async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Affiche le menu d'administration"""
-    keyboard = [
-        [InlineKeyboardButton("➕ Ajouter une catégorie", callback_data="add_category")],
-        [InlineKeyboardButton("➕ Ajouter un produit", callback_data="add_product")],
-        [InlineKeyboardButton("❌ Supprimer une catégorie", callback_data="delete_category")],
-        [InlineKeyboardButton("❌ Supprimer un produit", callback_data="delete_product")],
-        [InlineKeyboardButton("✏️ Modifier un produit", callback_data="edit_product")],
-        [InlineKeyboardButton("📊 Statistiques", callback_data="show_stats")],
-        [InlineKeyboardButton("📞 Modifier le contact", callback_data="edit_contact")],
-        [InlineKeyboardButton("📢 Envoyer une annonce", callback_data="start_broadcast")],
-        [InlineKeyboardButton("👥 Gérer utilisateurs", callback_data="manage_users")],
-        [InlineKeyboardButton("🔙 Retour à l'accueil", callback_data="back_to_home")]
-
-    ]
-
-    admin_text = (
-        "🔧 *Menu d'administration*\n\n"
-        "Sélectionnez une action à effectuer :"
-    )
-
-    try:
-        if update.callback_query:
-            await update.callback_query.edit_message_text(
-                admin_text,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='Markdown'
-            )
-        else:
-            await update.message.reply_text(
-                admin_text,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='Markdown'
-            )
-    except Exception as e:
-        print(f"Erreur dans show_admin_menu: {e}")
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=admin_text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='Markdown'
-        )
-
-    return CHOOSING
-
 async def handle_product_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Gère la sélection de catégorie pour un produit"""
     category_name = update.message.text
@@ -605,37 +560,6 @@ async def cancel_add_product(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.answer()
     context.user_data.clear()
     return await show_admin_menu(update, context)
-
-async def show_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Affiche les détails d'un produit"""
-    query = update.callback_query
-    await query.answer()
-    
-    try:
-        _, category, product_name = query.data.split("_", 2)
-        product = next((p for p in CATALOG[category] if p['name'] == product_name), None)
-        
-        if product:
-            text = f"📱 *{product['name']}*\n\n"
-            text += f"💰 *Prix:* {product['price']}\n\n"
-            text += f"📝 *Description:*\n{product['description']}"
-            
-            keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data=f"view_{category}")]]
-            
-            await query.edit_message_text(
-                text,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='Markdown'
-            )
-    except Exception as e:
-        print(f"Erreur dans show_product: {e}")
-        await query.edit_message_text(
-            "❌ Une erreur est survenue.",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("🔙 Retour", callback_data="show_categories")
-            ]])
-        )
-    return CHOOSING
 
 async def handle_product_category_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Gère la sélection de catégorie via bouton"""
@@ -2166,6 +2090,7 @@ def main():
                     # Gestion des catégories et du catalogue
                     CallbackQueryHandler(ui_handler.show_categories, pattern='^show_categories$'),
                     CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
+                    CallbackQueryHandler(ui_handler.show_product_details, pattern='^product_'),
             
                     # Gestion du menu admin et ses fonctionnalités
                     CallbackQueryHandler(admin, pattern='^admin$'),
