@@ -390,65 +390,57 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Affiche les informations à propos du bot"""
-    query = update.callback_query
-    await query.answer()
-
-    about_text = (
+    """Affiche la page À propos"""
+    keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]]
+    message_text = (
         "*📌 À propos*\n\n"
         "Ce bot vous permet de :\n"
         "• Consulter notre catalogue de produits\n"
         "• Explorer différentes catégories\n"
-        "• Voir les détails des produits\n\n"
-        "Pour commencer, utilisez la commande /start"
+        "• Voir les détails des produits"
     )
-
-    keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]]
-
-    await query.edit_message_text(
-        text=about_text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
-    )
-
+    
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.message.delete()
+        await update.callback_query.message.reply_text(
+            text=message_text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
     return CHOOSING
 
 async def contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Affiche les informations de contact"""
-    query = update.callback_query
-    await query.answer()
-
-    contact_text = (
+    """Affiche la page Contact"""
+    keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]]
+    message_text = (
         "*📞 Contact*\n\n"
         "Pour nous contacter :\n"
-        "• Email : example@email.com\n"
-        "• Telegram : @username\n"
-        "• Site web : website.com\n\n"
-        "N'hésitez pas à nous contacter pour toute question !"
+        "• Email : ton@email.com\n"
+        "• Telegram : @ton_username\n"
+        "• Site web : ton-site.com"
     )
-
-    keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]]
-
-    await query.edit_message_text(
-        text=contact_text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
-    )
-
+    
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.message.delete()
+        await update.callback_query.message.reply_text(
+            text=message_text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
     return CHOOSING
 
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Gère l'accès au menu administrateur"""
     user_id = str(update.effective_user.id)
     
-    # Vérifie si l'utilisateur a déjà un accès administrateur
     if user_id not in ADMIN_IDS and not access_control.has_access(user_id):
         keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]]
         message_text = "⛔️ Accès refusé. Veuillez entrer le code d'accès :"
         
         if update.callback_query:
             await update.callback_query.answer()
-            # Au lieu d'éditer, on supprime l'ancien message et on en envoie un nouveau
             await update.callback_query.message.delete()
             await update.callback_query.message.reply_text(
                 text=message_text,
@@ -461,21 +453,8 @@ async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         return WAITING_ACCESS_CODE
 
-    # Menu admin pour les utilisateurs autorisés
-    keyboard = [
-        [InlineKeyboardButton("➕ Ajouter un produit", callback_data="add_product")],
-        [InlineKeyboardButton("✏️ Modifier un produit", callback_data="edit_product")],
-        [InlineKeyboardButton("❌ Supprimer un produit", callback_data="remove_product")],
-        [InlineKeyboardButton("🔐 Gérer les accès", callback_data="manage_access")],
-        [InlineKeyboardButton("📢 Message général", callback_data="broadcast")],
-        [InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]
-    ]
-
-    message_text = "🔧 *Menu Administrateur*\n\nQue souhaitez-vous faire ?"
-
     if update.callback_query:
         await update.callback_query.answer()
-        # Au lieu d'éditer, on supprime l'ancien message et on en envoie un nouveau
         await update.callback_query.message.delete()
         await update.callback_query.message.reply_text(
             text=message_text,
@@ -796,91 +775,7 @@ async def daily_maintenance(context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"Erreur lors de la maintenance quotidienne : {e}")
 
-async def handle_category_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Gère l'ajout d'une nouvelle catégorie"""
-    category_name = update.message.text
-    
-    if category_name in CATALOG:
-        await update.message.reply_text(
-            "❌ Cette catégorie existe déjà. Veuillez choisir un autre nom:",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("🔙 Annuler", callback_data="cancel_add_category")
-            ]])
-        )
-        return WAITING_CATEGORY_NAME
-    
-    CATALOG[category_name] = []
-    save_catalog(CATALOG)
-    
-    # Supprimer le message précédent
-    await context.bot.delete_message(
-        chat_id=update.effective_chat.id,
-        message_id=update.message.message_id - 1
-    )
-    
-    # Supprimer le message de l'utilisateur
-    await update.message.delete()
-    
-    return await show_admin_menu(update, context)
 
-async def handle_product_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Gère l'entrée du nom du produit"""
-    product_name = update.message.text
-    category = context.user_data.get('temp_product_category')
-    
-    if category and any(p.get('name') == product_name for p in CATALOG.get(category, [])):
-        await update.message.reply_text(
-            "❌ Ce produit existe déjà dans cette catégorie. Veuillez choisir un autre nom:",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("🔙 Annuler", callback_data="cancel_add_product")
-            ]])
-        )
-        return WAITING_PRODUCT_NAME
-    
-    context.user_data['temp_product_name'] = product_name
-    
-    # Supprimer le message précédent
-    await context.bot.delete_message(
-        chat_id=update.effective_chat.id,
-        message_id=update.message.message_id - 1
-    )
-    
-    await update.message.reply_text(
-        "💰 Veuillez entrer le prix du produit:",
-        reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("🔙 Annuler", callback_data="cancel_add_product")
-        ]])
-    )
-    
-    # Supprimer le message de l'utilisateur
-    await update.message.delete()
-    
-    return WAITING_PRODUCT_PRICE
-
-async def handle_product_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Gère l'entrée du prix du produit"""
-    price = update.message.text
-    context.user_data['temp_product_price'] = price
-    
-    # Supprimer le message précédent
-    await context.bot.delete_message(
-        chat_id=update.effective_chat.id,
-        message_id=update.message.message_id - 1
-    )
-    
-    await update.message.reply_text(
-        "📝 Veuillez entrer la description du produit:",
-        reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("🔙 Annuler", callback_data="cancel_add_product")
-        ]])
-    )
-    
-    # Supprimer le message de l'utilisateur
-    await update.message.delete()
-    
-    return WAITING_PRODUCT_DESCRIPTION
-
-async def handle_product_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Gère l'entrée de la description du produit"""
     description = update.message.text
     context.user_data['temp_product_description'] = description
@@ -911,112 +806,125 @@ async def handle_product_description(update: Update, context: ContextTypes.DEFAU
     
     return WAITING_PRODUCT_MEDIA
 
-async def handle_product_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Gère l'ajout des médias (photos ou vidéos) du produit"""
-    # Vérifier d'abord si nous avons une photo ou une vidéo
-    if not (update.message.photo or update.message.video):
-        await update.message.reply_text("Veuillez envoyer une photo ou une vidéo.")
-        return WAITING_PRODUCT_MEDIA
-
-    # Initialiser les données si elles n'existent pas
-    if 'temp_product_media' not in context.user_data:
-        context.user_data['temp_product_media'] = []
+async def add_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Démarre le processus d'ajout d'une catégorie"""
+    keyboard = [[InlineKeyboardButton("❌ Annuler", callback_data="cancel_add_category")]]
     
-    # Initialiser le compteur s'il n'existe pas
-    if 'media_count' not in context.user_data:
-        context.user_data['media_count'] = 0
-
-    # Supprimer le message d'invitation précédent s'il existe
-    if context.user_data.get('media_invitation_message_id'):
-        try:
-            await context.bot.delete_message(
-                chat_id=update.effective_chat.id,
-                message_id=context.user_data['media_invitation_message_id']
-            )
-            del context.user_data['media_invitation_message_id']
-        except Exception as e:
-            print(f"Erreur lors de la suppression du message d'invitation: {e}")
-
-    # Supprimer le message de confirmation précédent s'il existe
-    if context.user_data.get('last_confirmation_message_id'):
-        try:
-            await context.bot.delete_message(
-                chat_id=update.effective_chat.id,
-                message_id=context.user_data['last_confirmation_message_id']
-            )
-        except Exception as e:
-            print(f"Erreur lors de la suppression du message de confirmation: {e}")
-
-    # Incrémenter le compteur
-    context.user_data['media_count'] += 1
-
-    # Déterminer le type de média et créer le nouveau média
-    if update.message.photo:
-        media_id = update.message.photo[-1].file_id
-        media_type = 'photo'
-    else:
-        media_id = update.message.video.file_id
-        media_type = 'video'
-
-    # Créer le nouveau média
-    new_media = {
-        'media_id': media_id,
-        'media_type': media_type,
-        'order_index': context.user_data['media_count']
-    }
-
-    # Ajouter le média à la liste temporaire
-    context.user_data['temp_product_media'].append(new_media)
-
-    # Supprimer le message de l'utilisateur
-    await update.message.delete()
-
-    # Envoyer le message de confirmation et sauvegarder son ID
-    message = await update.message.reply_text(
-        f"Photo/Vidéo {context.user_data['media_count']} ajoutée ! Cliquez sur Terminé pour valider :",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("✅ Terminé", callback_data="finish_media")],
-            [InlineKeyboardButton("🔙 Annuler", callback_data="cancel_add_product")]
-        ])
+    message_text = "📁 *Ajout d'une catégorie*\n\nEntrez le nom de la nouvelle catégorie :"
+    
+    await update.callback_query.answer()
+    await update.callback_query.message.edit_text(
+        text=message_text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode='Markdown'
     )
-    # Sauvegarder l'ID du nouveau message de confirmation
-    context.user_data['last_confirmation_message_id'] = message.message_id
+    
+    return WAITING_CATEGORY_NAME
 
-    return WAITING_PRODUCT_MEDIA
-
-async def finish_product_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    category = context.user_data.get('temp_product_category')
-    if not category:
-        return await show_admin_menu(update, context)
-
-    # Créer le nouveau produit
-    new_product = {
-        'name': context.user_data.get('temp_product_name'),
-        'price': context.user_data.get('temp_product_price'),
-        'description': context.user_data.get('temp_product_description'),
-        'media': context.user_data.get('temp_product_media', [])
-    }
-
-    # Ajouter le produit au catalogue
-    if category not in CATALOG:
-        CATALOG[category] = []
-    CATALOG[category].append(new_product)
-    save_catalog(CATALOG)
-
-    # Supprimer le message précédent
+async def handle_category_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gère la réception du nom de la nouvelle catégorie"""
+    category_name = update.message.text
+    
     try:
-        await query.message.delete()
-    except Exception as e:
-        print(f"Erreur lors de la suppression du message: {e}")
+        # Charger les catégories existantes
+        with open('data/categories.json', 'r', encoding='utf-8') as f:
+            categories = json.load(f)
+    except FileNotFoundError:
+        categories = []
+    
+    # Créer un nouvel ID unique
+    new_id = str(max([int(cat['id']) for cat in categories] + [0]) + 1)
+    
+    # Ajouter la nouvelle catégorie
+    categories.append({
+        'id': new_id,
+        'name': category_name
+    })
+    
+    # Sauvegarder les modifications
+    with open('data/categories.json', 'w', encoding='utf-8') as f:
+        json.dump(categories, f, ensure_ascii=False, indent=4)
+    
+    # Confirmer l'ajout
+    keyboard = [[InlineKeyboardButton("🔙 Retour au menu admin", callback_data="back_to_admin")]]
+    await update.message.reply_text(
+        f"✅ La catégorie *{category_name}* a été ajoutée avec succès !",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode='Markdown'
+    )
+    
+    return CHOOSING
 
-    # Nettoyer les données temporaires
-    context.user_data.clear()
+async def remove_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Affiche la liste des catégories à supprimer"""
+    try:
+        with open('data/categories.json', 'r', encoding='utf-8') as f:
+            categories = json.load(f)
+        
+        keyboard = []
+        for category in categories:
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"❌ {category['name']}", 
+                    callback_data=f"delete_category_{category['id']}"
+                )
+            ])
+        
+        keyboard.append([InlineKeyboardButton("🔙 Retour", callback_data="back_to_admin")])
+        
+        await update.callback_query.answer()
+        await update.callback_query.message.edit_text(
+            "🗑 *Suppression d'une catégorie*\n\nSélectionnez la catégorie à supprimer :",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+        
+        return REMOVING_CATEGORY
+        
+    except FileNotFoundError:
+        keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_admin")]]
+        await update.callback_query.answer()
+        await update.callback_query.message.edit_text(
+            "❌ Aucune catégorie n'existe actuellement.",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return CHOOSING
 
-    # Retourner au menu admin
-    return await show_admin_menu(update, context)
+async def handle_category_deletion(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gère la suppression d'une catégorie"""
+    query = update.callback_query
+    category_id = query.data.split('_')[2]
+    
+    try:
+        # Charger les catégories
+        with open('data/categories.json', 'r', encoding='utf-8') as f:
+            categories = json.load(f)
+        
+        # Trouver et supprimer la catégorie
+        category_name = ""
+        categories = [cat for cat in categories if cat['id'] != category_id]
+        
+        # Sauvegarder les modifications
+        with open('data/categories.json', 'w', encoding='utf-8') as f:
+            json.dump(categories, f, ensure_ascii=False, indent=4)
+        
+        keyboard = [[InlineKeyboardButton("🔙 Retour au menu admin", callback_data="back_to_admin")]]
+        await query.answer()
+        await query.message.edit_text(
+            f"✅ La catégorie a été supprimée avec succès !",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        
+        return CHOOSING
+        
+    except FileNotFoundError:
+        keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_admin")]]
+        await query.answer()
+        await query.message.edit_text(
+            "❌ Une erreur est survenue lors de la suppression de la catégorie.",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return CHOOSING
 
 async def handle_contact_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Gère la modification du nom d'utilisateur de contact"""
@@ -2112,42 +2020,61 @@ def main():
             entry_points=[CommandHandler('start', start)],
             states={
                 CHOOSING: [
+                    # Gestion des catégories et du catalogue
+                    CallbackQueryHandler(ui_handler.show_categories, pattern='^show_categories$'),
                     CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
+            
+                    # Gestion du menu admin et ses fonctionnalités
                     CallbackQueryHandler(admin, pattern='^admin$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^add_product$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_product$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^remove_product$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^broadcast$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^manage_access$'),
+                    CallbackQueryHandler(add_category, pattern='^add_category$'),
+                    CallbackQueryHandler(remove_category, pattern='^remove_category$'),
+            
+                    # Gestion des autres boutons du menu principal
+                    CallbackQueryHandler(about, pattern='^about$'),
+                    CallbackQueryHandler(contact, pattern='^contact$'),
                     CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$')
                 ],
-
-                CHOOSING_PRODUCT: [
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^product_'),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^back_to_categories$')
+        
+                SELECTING_CATEGORY: [
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_'),
+                    CallbackQueryHandler(admin, pattern='^back_to_admin$')
                 ],
 
                 WAITING_PRODUCT_NAME: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_name)
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_name),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
                 ],
 
                 WAITING_PRODUCT_DESCRIPTION: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_description)
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_description),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
                 ],
 
                 WAITING_PRODUCT_PRICE: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_price)
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_price),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
                 ],
 
                 WAITING_PRODUCT_MEDIA: [
                     MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
                     CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
                 ],
 
                 WAITING_PRODUCT_CATEGORY: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_category),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
                 ],
 
                 CONFIRM_ADD_PRODUCT: [
                     CallbackQueryHandler(handle_normal_buttons, pattern='^confirm_add_product$'),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
                 ],
 
                 CHOOSING_PRODUCT_TO_REMOVE: [
@@ -2160,6 +2087,16 @@ def main():
                     CallbackQueryHandler(admin, pattern='^back_to_admin$')
                 ],
 
+                WAITING_CATEGORY_NAME: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_category_name),
+                    CallbackQueryHandler(admin, pattern='^cancel_add_category$')
+                ],
+        
+                REMOVING_CATEGORY: [
+                    CallbackQueryHandler(handle_category_deletion, pattern='^delete_category_'),
+                    CallbackQueryHandler(admin, pattern='^back_to_admin$')
+                ],
+
                 EDITING_PRODUCT: [
                     CallbackQueryHandler(handle_normal_buttons, pattern='^edit_name$'),
                     CallbackQueryHandler(handle_normal_buttons, pattern='^edit_description$'),
@@ -2168,11 +2105,35 @@ def main():
                     CallbackQueryHandler(handle_normal_buttons, pattern='^edit_category$'),
                     CallbackQueryHandler(admin, pattern='^back_to_admin$')
                 ],
+
+                WAITING_NEW_NAME: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
+                ],
+
+                WAITING_NEW_DESCRIPTION: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
+                ],
+
+                WAITING_NEW_PRICE: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
+                ],
+
+                WAITING_NEW_MEDIA: [
+                    MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
+                    CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
+                ],
+
+                WAITING_NEW_CATEGORY: [
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
+                ],
+
                 WAITING_ACCESS_CODE: [
-                    MessageHandler(
-                        filters.TEXT & ~filters.COMMAND, 
-                        access_control.verify_code
-                    ),
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, access_control.verify_code),
                     CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$')
                 ],
 
@@ -2181,51 +2142,9 @@ def main():
                     CallbackQueryHandler(handle_normal_buttons, pattern='^revoke_access$'),
                     CallbackQueryHandler(admin, pattern='^back_to_admin$')
                 ],
-
-                WAITING_NEW_NAME: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
-                ],
-
-                WAITING_NEW_DESCRIPTION: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
-                ],
-
-                WAITING_NEW_PRICE: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
-                ],
-
-                WAITING_NEW_MEDIA: [
-                    MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
-                    CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^back_to_edit$')
-                ],
-
-                WAITING_NEW_CATEGORY: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_')
-                ],
-
-                WAITING_ACCESS_CODE: [
-                    MessageHandler(
-                        filters.TEXT & ~filters.COMMAND, 
-                        access_control.verify_code
-                    )
-                ],
-
-                WAITING_BROADCAST_MESSAGE: [
-                    MessageHandler(
-                        (filters.TEXT | filters.PHOTO | filters.VIDEO) & ~filters.COMMAND,
-                        handle_broadcast_message
-                    ),
-                    CallbackQueryHandler(
-                        lambda u, c: show_admin_menu(u, c),
-                        pattern="^cancel_broadcast$"
-                    )
-                ]
             },
             fallbacks=[
                 CommandHandler('start', start),
-                CommandHandler('admin', admin),
                 CommandHandler('cancel', cancel)
             ],
             name="main_conversation",

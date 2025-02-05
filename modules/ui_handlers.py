@@ -16,34 +16,41 @@ class UIHandler:
 
     async def show_categories(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Affiche les catégories disponibles"""
-        query = update.callback_query
-        if query:
-            await query.answer()
-
-        # Créer le clavier avec les catégories
         keyboard = []
-        for category in self.catalog.keys():
-            keyboard.append([InlineKeyboardButton(category, callback_data=f"category_{category}")])
+    
+        # Charger les catégories depuis le fichier JSON
+        try:
+            with open('data/categories.json', 'r', encoding='utf-8') as f:
+                categories = json.load(f)
+            
+            # Créer les boutons pour chaque catégorie
+            for category in categories:
+                keyboard.append([InlineKeyboardButton(
+                    category['name'], 
+                    callback_data=f"category_{category['id']}"
+                )])
+        except FileNotFoundError:
+            keyboard = []
     
         # Ajouter le bouton retour
         keyboard.append([InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")])
-
-        message_text = "📋 *Catégories disponibles*\n\nChoisissez une catégorie :"
-
-        if query:
-            await query.edit_message_text(
-                text=message_text,
+    
+        if update.callback_query:
+            await update.callback_query.answer()
+            await update.callback_query.message.delete()
+            await update.callback_query.message.reply_text(
+                "🗂 *Catégories disponibles*\n\nChoisissez une catégorie :",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode='Markdown'
             )
         else:
             await update.message.reply_text(
-                text=message_text,
+                "🗂 *Catégories disponibles*\n\nChoisissez une catégorie :",
                 reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode='Markdown'
             )
-
-        return CHOOSING_PRODUCT
+    
+        return CHOOSING
 
     async def show_products(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Affiche les produits d'une catégorie"""
