@@ -69,32 +69,55 @@ class UIHandler:
 
     async def show_home(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Affiche le menu principal"""
-        keyboard = [
-            [InlineKeyboardButton("🛍 Catalogue", callback_data="show_categories")],
-            [InlineKeyboardButton("ℹ️ À propos", callback_data="about")],
-            [InlineKeyboardButton("📞 Contact", callback_data="contact")]
-        ]
-    
-        if str(update.effective_user.id) in self.admin_ids:
-            keyboard.append([InlineKeyboardButton("🔧 Admin", callback_data="admin")])
+        try:
+            keyboard = [
+                [InlineKeyboardButton("🛍 Catalogue", callback_data="show_categories")],
+                [InlineKeyboardButton("ℹ️ À propos", callback_data="about")],
+                [InlineKeyboardButton("📞 Contact", callback_data="contact")]
+            ]
+        
+            if str(update.effective_user.id) in self.admin_ids:
+                keyboard.append([InlineKeyboardButton("🔧 Admin", callback_data="admin")])
 
-        message_text = (
-            "🎮 *Bienvenue sur le Bot*\n\n"
-            "Choisissez une option ci-dessous :"
-        )
-
-        if update.callback_query:
-            await update.callback_query.answer()
-            await update.callback_query.message.edit_text(
-                text=message_text,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='Markdown'
-            )
-        else:
-            await update.message.reply_text(
-                text=message_text,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='Markdown'
+            message_text = (
+                "🎮 *Bienvenue sur le Bot*\n\n"
+                "Choisissez une option ci-dessous :"
             )
 
-        return CHOOSING
+            try:
+                with open('assets/banner.jpg', 'rb') as photo:
+                    if update.callback_query:
+                        await update.callback_query.message.delete()
+                        message = await update.callback_query.message.reply_photo(
+                            photo=photo,
+                            caption=message_text,
+                            reply_markup=InlineKeyboardMarkup(keyboard),
+                            parse_mode='Markdown'
+                        )
+                        await update.callback_query.answer()
+                    else:
+                        await update.message.reply_photo(
+                            photo=photo,
+                            caption=message_text,
+                            reply_markup=InlineKeyboardMarkup(keyboard),
+                            parse_mode='Markdown'
+                        )
+            except FileNotFoundError:
+                # Si la bannière n'est pas trouvée, envoyer juste le texte
+                if update.callback_query:
+                    await update.callback_query.message.edit_text(
+                        text=message_text,
+                        reply_markup=InlineKeyboardMarkup(keyboard),
+                        parse_mode='Markdown'
+                    )
+                    await update.callback_query.answer()
+                else:
+                    await update.message.reply_text(
+                        text=message_text,
+                        reply_markup=InlineKeyboardMarkup(keyboard),
+                        parse_mode='Markdown'
+                    )
+
+            return CHOOSING
+        except Exception as e:
+            logging.error(f"Erreur dans show_home: {str(e)}")
