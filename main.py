@@ -508,7 +508,7 @@ async def finish_adding_media(update: Update, context: ContextTypes.DEFAULT_TYPE
     category = context.user_data.get('temp_product_category')
     if not category:
         await query.message.edit_text("Une erreur est survenue. Veuillez recommencer.")
-        return await show_admin_menu(update, context)
+        return await ui_handler.show_admin_menu(update, context)
     
     if 'temp_product_media' not in context.user_data:
         context.user_data['temp_product_media'] = []
@@ -2093,7 +2093,7 @@ def main():
                     CallbackQueryHandler(ui_handler.show_product_details, pattern='^product_'),
             
                     # Gestion du menu admin et ses fonctionnalités
-                    CallbackQueryHandler(admin, pattern='^admin$'),
+                    CallbackQueryHandler(ui_handler.show_admin_menu, pattern='^admin$'),
                     CallbackQueryHandler(handle_normal_buttons, pattern='^add_product$'),
                     CallbackQueryHandler(handle_normal_buttons, pattern='^edit_product$'),
                     CallbackQueryHandler(handle_normal_buttons, pattern='^remove_product$'),
@@ -2107,7 +2107,7 @@ def main():
                     CallbackQueryHandler(contact, pattern='^contact$'),
                     CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$')
                 ],
-        
+
                 SELECTING_CATEGORY: [
                     CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_'),
                     CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_'),
@@ -2116,28 +2116,28 @@ def main():
 
                 WAITING_PRODUCT_NAME: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_name),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
                 ],
 
                 WAITING_PRODUCT_DESCRIPTION: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_description),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
                 ],
 
                 WAITING_PRODUCT_PRICE: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_price),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
                 ],
 
                 WAITING_PRODUCT_MEDIA: [
                     MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
                     CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
                 ],
 
                 WAITING_PRODUCT_CATEGORY: [
                     CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_'),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
                 ],
 
                 CONFIRM_ADD_PRODUCT: [
@@ -2159,7 +2159,7 @@ def main():
                     MessageHandler(filters.TEXT & ~filters.COMMAND, handle_category_name),
                     CallbackQueryHandler(admin, pattern='^cancel_add_category$')
                 ],
-        
+
                 REMOVING_CATEGORY: [
                     CallbackQueryHandler(handle_category_deletion, pattern='^delete_category_'),
                     CallbackQueryHandler(admin, pattern='^back_to_admin$')
@@ -2198,32 +2198,6 @@ def main():
                 WAITING_NEW_CATEGORY: [
                     CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_'),
                     CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
-                ],
-
-                WAITING_PRODUCT_NAME: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_name),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
-                ],
-        
-                WAITING_PRODUCT_DESCRIPTION: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_description),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
-                ],
-        
-                WAITING_PRODUCT_PRICE: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_price),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
-                ],
-        
-                WAITING_PRODUCT_MEDIA: [
-                    MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
-                    CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
-                ],
-        
-                WAITING_PRODUCT_CATEGORY: [
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_'),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
                 ],
 
                 WAITING_ACCESS_CODE: [
