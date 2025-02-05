@@ -926,6 +926,144 @@ async def handle_category_deletion(update: Update, context: ContextTypes.DEFAULT
         )
         return CHOOSING
 
+async def handle_product_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gère la réception du nom du produit"""
+    context.user_data['product_name'] = update.message.text
+    
+    keyboard = [[InlineKeyboardButton("❌ Annuler", callback_data="cancel_add_product")]]
+    await update.message.reply_text(
+        "📝 Entrez la description du produit :",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    
+    return WAITING_PRODUCT_DESCRIPTION
+
+async def handle_product_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gère la réception de la description du produit"""
+    context.user_data['product_description'] = update.message.text
+    
+    keyboard = [[InlineKeyboardButton("❌ Annuler", callback_data="cancel_add_product")]]
+    await update.message.reply_text(
+        "💰 Entrez le prix du produit :",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    
+    return WAITING_PRODUCT_PRICE
+
+async def handle_product_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gère la réception du prix du produit"""
+    try:
+        price = float(update.message.text.replace(',', '.'))
+        context.user_data['product_price'] = price
+        
+        keyboard = [
+            [InlineKeyboardButton("✅ Terminer", callback_data="finish_media")],
+            [InlineKeyboardButton("❌ Annuler", callback_data="cancel_add_product")]
+        ]
+        
+        await update.message.reply_text(
+            "🖼 Envoyez une ou plusieurs photos/vidéos du produit.\n"
+            "Appuyez sur 'Terminer' une fois que vous avez fini.",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        
+        context.user_data['product_media'] = []
+        return WAITING_PRODUCT_MEDIA
+        
+    except ValueError:
+        keyboard = [[InlineKeyboardButton("❌ Annuler", callback_data="cancel_add_product")]]
+        await update.message.reply_text(
+            "❌ Prix invalide. Veuillez entrer un nombre valide :",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return WAITING_PRODUCT_PRICE
+
+async def handle_product_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gère la réception des médias du produit"""
+    if update.message.photo:
+        file_id = update.message.photo[-1].file_id
+        context.user_data['product_media'].append({'type': 'photo', 'file_id': file_id})
+    elif update.message.video:
+        file_id = update.message.video.file_id
+        context.user_data['product_media'].append({'type': 'video', 'file_id': file_id})
+    
+    keyboard = [
+        [InlineKeyboardButton("✅ Terminer", callback_data="finish_media")],
+        [InlineKeyboardButton("❌ Annuler", callback_data="cancel_add_product")]
+    ]
+    
+    await update.message.reply_text(
+        f"✅ Média ajouté ! ({len(context.user_data['product_media'])} au total)\n"
+        "Continuez à envoyer des médias ou appuyez sur 'Terminer'.",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    
+    return WAITING_PRODUCT_MEDIA
+
+async def finish_product_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Termine l'ajout des médias et passe à la sélection de la catégorie"""
+    try:
+        with open('data/categories.json', 'r', encoding='utf-8') as f:
+            categories = json.load(f)
+        
+        keyboard = []
+        for category in categories:
+            keyboard.append([
+                InlineKeyboardButton(
+                    category['name'], 
+                    callback_data=f"select_category_{category['id']}"
+                )
+            ])
+        
+        keyboard.append([InlineKeyboardButton("❌ Annuler", callback_data="cancel_add_product")])
+        
+        await update.callback_query.answer()
+        await update.callback_query.message.edit_text(
+            "📁 Sélectionnez une catégorie pour le produit :",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        
+        return WAITING_PRODUCT_CATEGORY
+        
+    except FileNotFoundError:
+        keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_admin")]]
+        await update.callback_query.answer()
+        await update.callback_query.message.edit_text(
+            "❌ Erreur : Aucune catégorie n'existe. Veuillez d'abord créer une catégorie.",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return CHOOSING
+
+async def save_product(context: ContextTypes.DEFAULT_TYPE, category_id: str):
+    """Sauvegarde le produit dans le fichier JSON"""
+    try:
+        with open('data/products.json', 'r', encoding='utf-8') as f:
+            products = json.load(f)
+    except FileNotFoundError:
+        products = []
+    
+    # Créer un nouvel ID unique
+    new_id = str(max([int(prod['id']) for prod in products] + [0]) + 1)
+    
+    # Créer le nouveau produit
+    new_product = {
+        'id': new_id,
+        'name': context.user_data['product_name'],
+        'description': context.user_data['product_description'],
+        'price': context.user_data['product_price'],
+        'media': context.user_data['product_media'],
+        'category_id': category_id
+    }
+    
+    # Ajouter le produit à la liste
+    products.append(new_product)
+    
+    # Sauvegarder les modifications
+    with open('data/products.json', 'w', encoding='utf-8') as f:
+        json.dump(products, f, ensure_ascii=False, indent=4)
+    
+    return new_product
+
 async def handle_contact_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Gère la modification du nom d'utilisateur de contact"""
     new_username = update.message.text.replace("@", "")
@@ -2130,6 +2268,32 @@ def main():
                 WAITING_NEW_CATEGORY: [
                     CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_'),
                     CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_')
+                ],
+
+                WAITING_PRODUCT_NAME: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_name),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
+                ],
+        
+                WAITING_PRODUCT_DESCRIPTION: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_description),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
+                ],
+        
+                WAITING_PRODUCT_PRICE: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_price),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
+                ],
+        
+                WAITING_PRODUCT_MEDIA: [
+                    MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
+                    CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
+                ],
+        
+                WAITING_PRODUCT_CATEGORY: [
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
                 ],
 
                 WAITING_ACCESS_CODE: [
