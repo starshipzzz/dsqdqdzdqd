@@ -27,6 +27,53 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# États de conversation
+CHOOSING = "CHOOSING"
+CHOOSE_CATEGORY = "CHOOSE_CATEGORY"
+CHOOSING_PRODUCT = "CHOOSING_PRODUCT"
+CHOOSING_PRODUCT_TO_REMOVE = "CHOOSING_PRODUCT_TO_REMOVE"
+CHOOSING_PRODUCT_TO_EDIT = "CHOOSING_PRODUCT_TO_EDIT"  # Ajout de cette constante manquante
+WAITING_CATEGORY_NAME = "WAITING_CATEGORY_NAME"
+WAITING_PRODUCT_NAME = "WAITING_PRODUCT_NAME"
+WAITING_PRODUCT_PRICE = "WAITING_PRODUCT_PRICE"
+WAITING_PRODUCT_DESCRIPTION = "WAITING_PRODUCT_DESCRIPTION"
+WAITING_PRODUCT_MEDIA = "WAITING_PRODUCT_MEDIA"
+WAITING_PRODUCT_CATEGORY = "WAITING_PRODUCT_CATEGORY"
+SELECTING_CATEGORY = "SELECTING_CATEGORY"
+SELECTING_CATEGORY_TO_DELETE = "SELECTING_CATEGORY_TO_DELETE"
+SELECTING_PRODUCT_TO_DELETE = "SELECTING_PRODUCT_TO_DELETE"
+SELECTING_PRODUCT_TO_EDIT = "SELECTING_PRODUCT_TO_EDIT"
+WAITING_CONTACT_USERNAME = "WAITING_CONTACT_USERNAME"
+EDITING_PRODUCT_FIELD = "EDITING_PRODUCT_FIELD"
+WAITING_NEW_VALUE = "WAITING_NEW_VALUE"
+WAITING_BROADCAST_MESSAGE = "WAITING_BROADCAST_MESSAGE"
+CONFIRM_ADD_PRODUCT = "CONFIRM_ADD_PRODUCT"
+WAITING_ACCESS_CODE = "WAITING_ACCESS_CODE"
+WAITING_NEW_NAME = "WAITING_NEW_NAME"
+WAITING_NEW_DESCRIPTION = "WAITING_NEW_DESCRIPTION"
+WAITING_NEW_PRICE = "WAITING_NEW_PRICE"
+WAITING_NEW_MEDIA = "WAITING_NEW_MEDIA"
+WAITING_NEW_CATEGORY = "WAITING_NEW_CATEGORY"
+EDITING_PRODUCT = "EDITING_PRODUCT"
+
+
+# 4. Définition des fonctions utilitaires
+def load_catalog():
+    """Charge le catalogue depuis le fichier"""
+    try:
+        with open(CONFIG['catalog_file'], 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+def save_config():
+    """Sauvegarde la configuration dans le fichier"""
+    try:
+        with open('config/config.json', 'w', encoding='utf-8') as f:
+            json.dump(CONFIG, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde de la configuration : {e}")
+
 # Charger la configuration
 try:
     with open('config/config.json', 'r', encoding='utf-8') as f:
@@ -40,13 +87,21 @@ except KeyError as e:
     print(f"Erreur: La clé {e} est manquante dans le fichier config.json!")
     exit(1)
 
-def save_config():
-    """Sauvegarde la configuration dans le fichier config.json"""
-    try:
-        with open('config/config.json', 'w', encoding='utf-8') as f:
-            json.dump(CONFIG, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        print(f"Erreur lors de la sauvegarde de la configuration : {e}")
+# Charger le catalogue avant d'initialiser ui_handler
+CATALOG = load_catalog()
+
+# Importer les modules personnalisés après les imports standard
+from modules.ui_handlers import UIHandler
+from modules.access_control import AccessControl
+
+# Initialiser les modules dans le bon ordre
+ui_handler = UIHandler(CONFIG, save_active_users, CATALOG)
+access_control = AccessControl(CONFIG, save_config, ADMIN_IDS)
+access_control.set_default_callback(ui_handler.show_home)
+
+# Variables globales pour les statistiques
+STATS_CACHE = None
+LAST_CACHE_UPDATE = None
 
 def save_active_users(users_data):
     """Sauvegarde les données des utilisateurs actifs dans un fichier"""
@@ -80,29 +135,6 @@ def load_active_users():
         return {}
 
 # Fonctions de gestion du catalogue
-def load_catalog():
-    try:
-        with open(CONFIG['catalog_file'], 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
-
-# Charger le catalogue avant d'initialiser ui_handler
-CATALOG = load_catalog()
-
-# Initialiser les modules après avoir chargé CONFIG et CATALOG
-from modules.ui_handlers import UIHandler
-from modules.access_control import AccessControl, WAITING_ACCESS_CODE
-
-STATS_CACHE = None
-LAST_CACHE_UPDATE = None
-
-# Initialiser les handlers avec toutes les dépendances nécessaires
-access_control = AccessControl(CONFIG, save_config, ADMIN_IDS)
-access_control.set_default_callback(ui_handler.show_home)
-ui_handler = UIHandler(CONFIG, save_active_users, CATALOG)
-
-
 
 def save_catalog(catalog):
     with open(CONFIG['catalog_file'], 'w', encoding='utf-8') as f:
@@ -228,38 +260,6 @@ def print_catalog_debug():
                 print(f"  Produit: {product['name']}")
                 if 'media' in product:
                     print(f"    Médias ({len(product['media'])}): {product['media']}")
-
-# États de conversation
-CHOOSING = "CHOOSING"
-CHOOSE_CATEGORY = "CHOOSE_CATEGORY"
-CHOOSING_PRODUCT = "CHOOSING_PRODUCT"
-CHOOSING_PRODUCT_TO_REMOVE = "CHOOSING_PRODUCT_TO_REMOVE"
-CHOOSING_PRODUCT_TO_EDIT = "CHOOSING_PRODUCT_TO_EDIT"  # Ajout de cette constante manquante
-WAITING_CATEGORY_NAME = "WAITING_CATEGORY_NAME"
-WAITING_PRODUCT_NAME = "WAITING_PRODUCT_NAME"
-WAITING_PRODUCT_PRICE = "WAITING_PRODUCT_PRICE"
-WAITING_PRODUCT_DESCRIPTION = "WAITING_PRODUCT_DESCRIPTION"
-WAITING_PRODUCT_MEDIA = "WAITING_PRODUCT_MEDIA"
-WAITING_PRODUCT_CATEGORY = "WAITING_PRODUCT_CATEGORY"
-SELECTING_CATEGORY = "SELECTING_CATEGORY"
-SELECTING_CATEGORY_TO_DELETE = "SELECTING_CATEGORY_TO_DELETE"
-SELECTING_PRODUCT_TO_DELETE = "SELECTING_PRODUCT_TO_DELETE"
-SELECTING_PRODUCT_TO_EDIT = "SELECTING_PRODUCT_TO_EDIT"
-WAITING_CONTACT_USERNAME = "WAITING_CONTACT_USERNAME"
-EDITING_PRODUCT_FIELD = "EDITING_PRODUCT_FIELD"
-WAITING_NEW_VALUE = "WAITING_NEW_VALUE"
-WAITING_BROADCAST_MESSAGE = "WAITING_BROADCAST_MESSAGE"
-CONFIRM_ADD_PRODUCT = "CONFIRM_ADD_PRODUCT"
-WAITING_ACCESS_CODE = "WAITING_ACCESS_CODE"
-WAITING_NEW_NAME = "WAITING_NEW_NAME"
-WAITING_NEW_DESCRIPTION = "WAITING_NEW_DESCRIPTION"
-WAITING_NEW_PRICE = "WAITING_NEW_PRICE"
-WAITING_NEW_MEDIA = "WAITING_NEW_MEDIA"
-WAITING_NEW_CATEGORY = "WAITING_NEW_CATEGORY"
-EDITING_PRODUCT = "EDITING_PRODUCT" 
-
-# Charger le catalogue au démarrage
-CATALOG = load_catalog()
 
 # Fonctions de base
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
