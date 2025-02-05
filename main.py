@@ -2107,101 +2107,84 @@ def main():
             entry_points=[CommandHandler('start', start)],
             states={
                 CHOOSING: [
-                    CallbackQueryHandler(ui_handler.show_categories, pattern='^show_categories$'),
                     CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
                     CallbackQueryHandler(admin, pattern='^admin$'),
-                    CallbackQueryHandler(about, pattern='^about$'),
-                    CallbackQueryHandler(contact, pattern='^contact$'),
-                    CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$'),
-                    # Boutons admin
-                    CallbackQueryHandler(add_product, pattern='^add_product$'),
-                    CallbackQueryHandler(remove_product, pattern='^remove_product$'),
-                    CallbackQueryHandler(edit_product, pattern='^edit_product$'),
+                    CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$')
                 ],
 
                 CHOOSING_PRODUCT: [
-                    CallbackQueryHandler(ui_handler.show_product_details, pattern='^product_'),
-                    CallbackQueryHandler(ui_handler.show_categories, pattern='^back_to_categories$')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^product_'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^back_to_categories$')
                 ],
 
                 WAITING_PRODUCT_NAME: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_name),
-                    CallbackQueryHandler(cancel_add_product, pattern='^cancel_add_product$')
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_name)
                 ],
 
                 WAITING_PRODUCT_DESCRIPTION: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_description),
-                    CallbackQueryHandler(cancel_add_product, pattern='^cancel_add_product$')
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_description)
                 ],
 
                 WAITING_PRODUCT_PRICE: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_price),
-                    CallbackQueryHandler(cancel_add_product, pattern='^cancel_add_product$')
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_price)
                 ],
 
                 WAITING_PRODUCT_MEDIA: [
                     MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
                     CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),
-                    CallbackQueryHandler(cancel_add_product, pattern='^cancel_add_product$')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
                 ],
 
                 WAITING_PRODUCT_CATEGORY: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_category),
-                    CallbackQueryHandler(handle_product_category_button, pattern='^select_category_'),
-                    CallbackQueryHandler(cancel_add_product, pattern='^cancel_add_product$')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_')
                 ],
 
                 CONFIRM_ADD_PRODUCT: [
-                    CallbackQueryHandler(confirm_add_product, pattern='^confirm_add_product$'),
-                    CallbackQueryHandler(cancel_add_product, pattern='^cancel_add_product$')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^confirm_add_product$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')
                 ],
 
                 CHOOSING_PRODUCT_TO_REMOVE: [
-                    CallbackQueryHandler(confirm_remove_product, pattern='^remove_product_'),
-                    CallbackQueryHandler(admin, pattern='^back_to_admin$'),
-                    CallbackQueryHandler(cancel_remove_product, pattern='^cancel_remove_product$')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^remove_product_'),
+                    CallbackQueryHandler(admin, pattern='^back_to_admin$')
                 ],
 
                 CHOOSING_PRODUCT_TO_EDIT: [
-                    CallbackQueryHandler(edit_product_menu, pattern='^edit_product_'),
-                    CallbackQueryHandler(admin, pattern='^back_to_admin$'),
-                    CallbackQueryHandler(cancel_edit_product, pattern='^cancel_edit$')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_product_'),
+                    CallbackQueryHandler(admin, pattern='^back_to_admin$')
                 ],
 
                 EDITING_PRODUCT: [
-                    CallbackQueryHandler(handle_edit_name, pattern='^edit_name$'),
-                    CallbackQueryHandler(handle_edit_description, pattern='^edit_description$'),
-                    CallbackQueryHandler(handle_edit_price, pattern='^edit_price$'),
-                    CallbackQueryHandler(handle_edit_media, pattern='^edit_media$'),
-                    CallbackQueryHandler(handle_edit_category, pattern='^edit_category$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_name$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_description$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_price$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_media$'),
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_category$'),
                     CallbackQueryHandler(admin, pattern='^back_to_admin$')
                 ],
 
                 WAITING_NEW_NAME: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
-                    CallbackQueryHandler(cancel_edit_product, pattern='^cancel_edit$')
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
                 ],
 
                 WAITING_NEW_DESCRIPTION: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
-                    CallbackQueryHandler(cancel_edit_product, pattern='^cancel_edit$')
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
                 ],
 
                 WAITING_NEW_PRICE: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
-                    CallbackQueryHandler(cancel_edit_product, pattern='^cancel_edit$')
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
                 ],
 
                 WAITING_NEW_MEDIA: [
                     MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
                     CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),
-                    CallbackQueryHandler(cancel_edit_product, pattern='^back_to_edit$')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^back_to_edit$')
                 ],
 
                 WAITING_NEW_CATEGORY: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
-                    CallbackQueryHandler(handle_product_category_button, pattern='^select_category_'),
-                    CallbackQueryHandler(cancel_edit_product, pattern='^cancel_edit$')
+                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_')
                 ],
 
                 WAITING_ACCESS_CODE: [
@@ -2216,7 +2199,10 @@ def main():
                         (filters.TEXT | filters.PHOTO | filters.VIDEO) & ~filters.COMMAND,
                         handle_broadcast_message
                     ),
-                    CallbackQueryHandler(admin, pattern='^cancel_broadcast$')
+                    CallbackQueryHandler(
+                        lambda u, c: show_admin_menu(u, c),
+                        pattern="^cancel_broadcast$"
+                    )
                 ]
             },
             fallbacks=[
