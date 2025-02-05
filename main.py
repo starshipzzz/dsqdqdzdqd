@@ -122,7 +122,7 @@ from modules.ui_handlers import UIHandler
 from modules.access_control import AccessControl
 
 # Initialiser les modules dans le bon ordre
-ui_handler = UIHandler(CONFIG, save_active_users, CATALOG)
+ui_handler = UIHandler(CONFIG, save_active_users, CATALOG, ADMIN_IDS)  # Ajout de ADMIN_IDS
 access_control = AccessControl(CONFIG, save_config, ADMIN_IDS)
 access_control.set_default_callback(ui_handler.show_home)
 
@@ -538,6 +538,24 @@ async def finish_adding_media(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     context.user_data.clear()
     return CHOOSING
+
+async def add_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gère l'ajout d'un nouveau produit"""
+    query = update.callback_query
+    await query.answer()
+    
+    # Afficher les catégories disponibles
+    keyboard = []
+    for category in CATALOG.keys():
+        keyboard.append([InlineKeyboardButton(category, callback_data=f"select_category_{category}")])
+    
+    keyboard.append([InlineKeyboardButton("🔙 Annuler", callback_data="cancel_add_product")])
+    
+    await query.edit_message_text(
+        "📝 Choisissez une catégorie pour le nouveau produit :",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return SELECTING_CATEGORY
 
 async def cancel_add_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Annule l'ajout d'un produit"""
@@ -2012,90 +2030,101 @@ def main():
             entry_points=[CommandHandler('start', start)],
             states={
                 CHOOSING: [
+                    CallbackQueryHandler(ui_handler.show_categories, pattern='^show_categories$'),
                     CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
                     CallbackQueryHandler(admin, pattern='^admin$'),
-                    CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$')
+                    CallbackQueryHandler(about, pattern='^about$'),
+                    CallbackQueryHandler(contact, pattern='^contact$'),
+                    CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$'),
+                    # Boutons admin
+                    CallbackQueryHandler(add_product, pattern='^add_product$'),
+                    CallbackQueryHandler(remove_product, pattern='^remove_product$'),
+                    CallbackQueryHandler(edit_product, pattern='^edit_product$'),
                 ],
-        
-                CHOOSE_CATEGORY: [
-                    CallbackQueryHandler(ui_handler.show_products, pattern='^category_'),
-                    CallbackQueryHandler(admin, pattern='^admin$'),
-                    CallbackQueryHandler(ui_handler.show_home, pattern='^back_to_home$')
-                ],
-        
+
                 CHOOSING_PRODUCT: [
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^product_'),  # Modifié ici
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^back_to_categories$')  # Modifié ici
+                    CallbackQueryHandler(ui_handler.show_product_details, pattern='^product_'),
+                    CallbackQueryHandler(ui_handler.show_categories, pattern='^back_to_categories$')
                 ],
 
                 WAITING_PRODUCT_NAME: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_name)
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_name),
+                    CallbackQueryHandler(cancel_add_product, pattern='^cancel_add_product$')
                 ],
 
                 WAITING_PRODUCT_DESCRIPTION: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_description)
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_description),
+                    CallbackQueryHandler(cancel_add_product, pattern='^cancel_add_product$')
                 ],
 
                 WAITING_PRODUCT_PRICE: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_price)
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_price),
+                    CallbackQueryHandler(cancel_add_product, pattern='^cancel_add_product$')
                 ],
 
                 WAITING_PRODUCT_MEDIA: [
                     MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
-                    CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),  # Modifié ici
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')  # Modifié ici
+                    CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),
+                    CallbackQueryHandler(cancel_add_product, pattern='^cancel_add_product$')
                 ],
 
                 WAITING_PRODUCT_CATEGORY: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, handle_product_category),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_')  # Modifié ici
+                    CallbackQueryHandler(handle_product_category_button, pattern='^select_category_'),
+                    CallbackQueryHandler(cancel_add_product, pattern='^cancel_add_product$')
                 ],
 
                 CONFIRM_ADD_PRODUCT: [
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^confirm_add_product$'),  # Modifié ici
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^cancel_add_product$')  # Modifié ici
+                    CallbackQueryHandler(confirm_add_product, pattern='^confirm_add_product$'),
+                    CallbackQueryHandler(cancel_add_product, pattern='^cancel_add_product$')
                 ],
 
                 CHOOSING_PRODUCT_TO_REMOVE: [
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^remove_product_'),  # Modifié ici
-                    CallbackQueryHandler(admin, pattern='^back_to_admin$')
+                    CallbackQueryHandler(confirm_remove_product, pattern='^remove_product_'),
+                    CallbackQueryHandler(admin, pattern='^back_to_admin$'),
+                    CallbackQueryHandler(cancel_remove_product, pattern='^cancel_remove_product$')
                 ],
 
                 CHOOSING_PRODUCT_TO_EDIT: [
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_product_'),  # Modifié ici
-                    CallbackQueryHandler(admin, pattern='^back_to_admin$')
+                    CallbackQueryHandler(edit_product_menu, pattern='^edit_product_'),
+                    CallbackQueryHandler(admin, pattern='^back_to_admin$'),
+                    CallbackQueryHandler(cancel_edit_product, pattern='^cancel_edit$')
                 ],
 
                 EDITING_PRODUCT: [
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_name$'),  # Modifié ici
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_description$'),  # Modifié ici
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_price$'),  # Modifié ici
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_media$'),  # Modifié ici
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^edit_category$'),  # Modifié ici
+                    CallbackQueryHandler(handle_edit_name, pattern='^edit_name$'),
+                    CallbackQueryHandler(handle_edit_description, pattern='^edit_description$'),
+                    CallbackQueryHandler(handle_edit_price, pattern='^edit_price$'),
+                    CallbackQueryHandler(handle_edit_media, pattern='^edit_media$'),
+                    CallbackQueryHandler(handle_edit_category, pattern='^edit_category$'),
                     CallbackQueryHandler(admin, pattern='^back_to_admin$')
                 ],
 
                 WAITING_NEW_NAME: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
+                    CallbackQueryHandler(cancel_edit_product, pattern='^cancel_edit$')
                 ],
 
                 WAITING_NEW_DESCRIPTION: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
+                    CallbackQueryHandler(cancel_edit_product, pattern='^cancel_edit$')
                 ],
 
                 WAITING_NEW_PRICE: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value)
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
+                    CallbackQueryHandler(cancel_edit_product, pattern='^cancel_edit$')
                 ],
 
                 WAITING_NEW_MEDIA: [
                     MessageHandler(filters.PHOTO | filters.VIDEO, handle_product_media),
-                    CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),  # Modifié ici
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^back_to_edit$')  # Modifié ici
+                    CallbackQueryHandler(finish_product_media, pattern='^finish_media$'),
+                    CallbackQueryHandler(cancel_edit_product, pattern='^back_to_edit$')
                 ],
 
                 WAITING_NEW_CATEGORY: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_value),
-                    CallbackQueryHandler(handle_normal_buttons, pattern='^select_category_')  # Modifié ici
+                    CallbackQueryHandler(handle_product_category_button, pattern='^select_category_'),
+                    CallbackQueryHandler(cancel_edit_product, pattern='^cancel_edit$')
                 ],
 
                 WAITING_ACCESS_CODE: [
@@ -2110,10 +2139,7 @@ def main():
                         (filters.TEXT | filters.PHOTO | filters.VIDEO) & ~filters.COMMAND,
                         handle_broadcast_message
                     ),
-                    CallbackQueryHandler(
-                        lambda u, c: show_admin_menu(u, c),
-                        pattern="^cancel_broadcast$"
-                    )
+                    CallbackQueryHandler(admin, pattern='^cancel_broadcast$')
                 ]
             },
             fallbacks=[

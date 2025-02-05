@@ -7,10 +7,11 @@ from telegram import InputMediaPhoto
 CHOOSING = "CHOOSING"
 
 class UIHandler:
-    def __init__(self, config, save_active_users, catalog):  # Ajout de catalog
-        self.CONFIG = config
-        self.save_active_users = save_active_users
-        self.CATALOG = catalog  # Ajout de cette ligne
+    def __init__(self, config, save_active_users_callback, catalog, admin_ids):
+        self.config = config
+        self.save_active_users = save_active_users_callback
+        self.catalog = catalog
+        self.admin_ids = admin_id # Ajout de cette ligne
 
     async def show_products(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Affiche les produits d'une catégorie"""
