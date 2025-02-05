@@ -16,6 +16,10 @@ from telegram.ext import (
     ConversationHandler
 )
 
+from config.states import *  # Importe tous les états
+from modules.ui_handlers import UIHandler
+from modules.access_control import AccessControl
+
 os.makedirs('data', exist_ok=True)
 os.makedirs('config', exist_ok=True)
 
@@ -384,6 +388,55 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     return CHOOSING
 
+
+async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Affiche les informations à propos du bot"""
+    query = update.callback_query
+    await query.answer()
+
+    about_text = (
+        "*📌 À propos*\n\n"
+        "Ce bot vous permet de :\n"
+        "• Consulter notre catalogue de produits\n"
+        "• Explorer différentes catégories\n"
+        "• Voir les détails des produits\n\n"
+        "Pour commencer, utilisez la commande /start"
+    )
+
+    keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]]
+
+    await query.edit_message_text(
+        text=about_text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode='Markdown'
+    )
+
+    return CHOOSING
+
+async def contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Affiche les informations de contact"""
+    query = update.callback_query
+    await query.answer()
+
+    contact_text = (
+        "*📞 Contact*\n\n"
+        "Pour nous contacter :\n"
+        "• Email : example@email.com\n"
+        "• Telegram : @username\n"
+        "• Site web : website.com\n\n"
+        "N'hésitez pas à nous contacter pour toute question !"
+    )
+
+    keyboard = [[InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")]]
+
+    await query.edit_message_text(
+        text=contact_text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode='Markdown'
+    )
+
+    return CHOOSING
+
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Menu administrateur"""
     # Vérifier si l'utilisateur est administrateur
@@ -641,6 +694,30 @@ async def confirm_add_product(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     context.user_data.clear()
     return CHOOSING
+
+async def remove_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gère la suppression d'un produit"""
+    query = update.callback_query
+    await query.answer()
+    
+    # Créer le clavier avec tous les produits
+    keyboard = []
+    for category, products in CATALOG.items():
+        for product in products:
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"{product['name']} ({category})", 
+                    callback_data=f"remove_product_{category}_{product['name']}"
+                )
+            ])
+    
+    keyboard.append([InlineKeyboardButton("🔙 Annuler", callback_data="cancel_remove_product")])
+    
+    await query.edit_message_text(
+        "🗑 Sélectionnez le produit à supprimer :",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return SELECTING_PRODUCT_TO_DELETE
 
 async def confirm_remove_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Confirme la suppression d'un produit"""

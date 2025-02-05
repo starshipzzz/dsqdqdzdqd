@@ -2,6 +2,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram import InputMediaPhoto
+from config.states import CHOOSING, CHOOSING_PRODUCT  # Ajoute les états dont tu as besoin
 
 # États de conversation (à importer depuis un fichier central de constantes plus tard si tu veux)
 CHOOSING = "CHOOSING"
@@ -11,7 +12,38 @@ class UIHandler:
         self.config = config
         self.save_active_users = save_active_users_callback
         self.catalog = catalog
-        self.admin_ids = admin_id # Ajout de cette ligne
+        self.admin_ids = admin_ids # Ajout de cette ligne
+
+    async def show_categories(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Affiche les catégories disponibles"""
+        query = update.callback_query
+        if query:
+            await query.answer()
+
+        # Créer le clavier avec les catégories
+        keyboard = []
+        for category in self.catalog.keys():
+            keyboard.append([InlineKeyboardButton(category, callback_data=f"category_{category}")])
+    
+        # Ajouter le bouton retour
+        keyboard.append([InlineKeyboardButton("🔙 Retour", callback_data="back_to_home")])
+
+        message_text = "📋 *Catégories disponibles*\n\nChoisissez une catégorie :"
+
+        if query:
+            await query.edit_message_text(
+                text=message_text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        else:
+            await update.message.reply_text(
+                text=message_text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+
+        return CHOOSING_PRODUCT
 
     async def show_products(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Affiche les produits d'une catégorie"""
